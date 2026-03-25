@@ -6,22 +6,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:'Poppins',sans-serif;background:#f1f5f9;display:flex;height:100vh}.header{position:fixed;top:0;left:0;width:100%;background:#111827;color:white;padding:12px 20px;font-weight:600;z-index:10}
-
-.menu{width:65%;padding:70px 20px 20px;overflow:auto} .cart{width:35%;background:white;padding:70px 20px 20px;display:flex;flex-direction:column;box-shadow:-3px 0 10px rgba(0,0,0,0.1)}
-
-h2{margin:10px 0}
-
+body{margin:0;font-family:'Poppins',sans-serif;background:#f1f5f9;display:flex;height:100vh}
+.header{position:fixed;top:0;left:0;width:100%;background:#111827;color:white;padding:12px 20px;font-weight:600;z-index:10}
+.menu{width:65%;padding:70px 20px 20px;overflow:auto}
+.cart{width:35%;background:white;padding:70px 20px 20px;display:flex;flex-direction:column;box-shadow:-3px 0 10px rgba(0,0,0,0.1)}
 .card{background:white;padding:12px;border-radius:12px;margin:8px 0;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
-
-button{border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px} .btn-add{background:#10b981;color:white} .btn-edit{background:#3b82f6;color:white} .btn-delete{background:#ef4444;color:white} .btn-main{background:#111827;color:white;width:100%;padding:10px;margin-top:6px}
-
+button{border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+.btn-add{background:#10b981;color:white}
+.btn-edit{background:#3b82f6;color:white}
+.btn-delete{background:#ef4444;color:white}
+.btn-main{background:#111827;color:white;width:100%;padding:10px;margin-top:6px}
 input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc}
-
 .cart-item{display:flex;justify-content:space-between;background:#f9fafb;padding:10px;border-radius:8px;margin:5px 0}
-
 .total{font-size:18px;font-weight:600;margin-top:auto}
-
 </style>
 </head>
 <body><div class="header">🛍️ TOKO AMANAH</div><div class="menu">
@@ -39,6 +36,7 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #c
 <div id="kembalian"></div>
 <button class="btn-main" onclick="hitungKembalian()">Hitung Kembalian</button>
 <button class="btn-main" onclick="printStruk()">Print Struk</button>
+<button class="btn-main" onclick="selesaiTransaksi()">Selesai (Tanpa Print)</button>
 </div><script>
 let barang = JSON.parse(localStorage.getItem("barang")) || [];
 let cart = [];
@@ -70,7 +68,7 @@ function hapusBarang(index){
 
 function editHarga(index){
   const hargaBaru = prompt("Harga baru:", barang[index].harga);
-  if(hargaBaru){
+  if(hargaBaru !== null && hargaBaru !== ""){
     barang[index].harga = Number(hargaBaru);
     simpan();
     renderMenu();
@@ -110,7 +108,7 @@ function renderCart(){
   list.innerHTML="";
   let total=0;
 
-  cart.forEach((c,i)=>{
+  cart.forEach((c)=>{
     const sub=c.harga*c.qty;
     total+=sub;
     const div=document.createElement("div");
@@ -130,6 +128,20 @@ function hitungKembalian(){
   document.getElementById("kembalian").innerText = kembali>=0
     ? "Kembalian: Rp"+kembali.toLocaleString()
     : "Uang tidak cukup";
+}
+
+function resetCart(){
+  cart = [];
+  document.getElementById("bayar").value = "";
+  document.getElementById("kembalian").innerText = "";
+  renderCart();
+}
+
+function selesaiTransaksi(){
+  if(cart.length === 0) return;
+  if(confirm("Selesaikan transaksi?")){
+    resetCart();
+  }
 }
 
 function printStruk(){

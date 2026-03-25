@@ -1,9 +1,15 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Toko Amanah - Kasir Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:'Poppins',sans-serif;background:#f1f5f9;display:flex;height:100vh}
@@ -23,16 +29,28 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #c
 .qty-btn{padding:4px 8px;margin:0 2px}
 </style>
 </head>
-<body><div class="header">🛍️ TOKO AMANAH</div><div class="menu">
+<body>
+
+<div class="header">🛍️ TOKO AMANAH</div>
+
+<div class="menu">
 <h2>Menu Barang</h2>
 <input type="text" id="search" placeholder="Cari barang..." onkeyup="renderMenu()">
-<div id="menuList"></div><h3>Tambah / Update Barang</h3>
+<div id="menuList"></div>
+
+<h3>Tambah / Update Barang</h3>
 <input type="text" id="nama" placeholder="Nama barang">
 <input type="number" id="harga" placeholder="Harga">
-<button class="btn-main" onclick="tambahBarang()">Simpan</button><h3>📊 Total Hari Ini</h3>
-<div id="totalHarian" class="card">Rp0</div><h3>📜 Riwayat Transaksi</h3>
+<button class="btn-main" onclick="tambahBarang()">Simpan</button>
+
+<h3>📊 Total Hari Ini</h3>
+<div id="totalHarian" class="card">Rp0</div>
+
+<h3>📜 Riwayat Transaksi</h3>
 <div id="riwayat"></div>
-</div><div class="cart">
+</div>
+
+<div class="cart">
 <h2>Keranjang</h2>
 <div id="cartList"></div>
 <div class="total" id="total">Total: Rp0</div>
@@ -41,86 +59,99 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #c
 <button class="btn-main" onclick="hitungKembalian()">Hitung Kembalian</button>
 <button class="btn-main" onclick="printStruk()">Print Struk</button>
 <button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
-</div><script>
-let barang = JSON.parse(localStorage.getItem("barang")) || [];
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD8LPcTPpM1ctJQuOQAaWGh232T5xJ4j-U",
+  authDomain: "kasir-b0121.firebaseapp.com",
+  projectId: "kasir-b0121",
+  storageBucket: "kasir-b0121.firebasestorage.app",
+  messagingSenderId: "419878534431",
+  appId: "1:419878534431:web:f7fd82902320cccb98442a",
+  measurementId: "G-0T6SL0EK5D"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 let cart = [];
-let riwayat = JSON.parse(localStorage.getItem("riwayat")) || [];
 
-function simpan(){ localStorage.setItem("barang", JSON.stringify(barang)); }
-function simpanRiwayat(){ localStorage.setItem("riwayat", JSON.stringify(riwayat)); }
+// ================= Helper =================
+function formatRp(num){
+  return num.toLocaleString('id-ID');
+}
 
-function tambahBarang(){
+// ================= Barang =================
+async function tambahBarang(){
   const nama = document.getElementById("nama").value.trim();
-  const harga = document.getElementById("harga").value;
+  const harga = Number(document.getElementById("harga").value);
   if(!nama || !harga) return alert("Isi semua");
 
-  const existing = barang.find(b=>b.nama.toLowerCase()===nama.toLowerCase());
-  if(existing){ existing.harga = Number(harga); }
-  else{ barang.push({nama, harga:Number(harga)}); }
-
-  simpan(); renderMenu();
+  await db.collection("barang").doc(nama.toLowerCase()).set({ nama, harga });
   document.getElementById("nama").value="";
   document.getElementById("harga").value="";
+  renderMenu();
 }
 
-function hapusBarang(index){
+async function hapusBarang(nama){
   if(confirm("Hapus barang?")){
-    barang.splice(index,1);
-    simpan(); renderMenu();
+    await db.collection("barang").doc(nama.toLowerCase()).delete();
+    renderMenu();
   }
 }
 
-function editHarga(index){
-  const hargaBaru = prompt("Harga baru:", barang[index].harga);
+async function editHarga(nama, hargaLama){
+  const hargaBaru = prompt("Harga baru:", hargaLama);
   if(hargaBaru){
-    barang[index].harga = Number(hargaBaru);
-    simpan(); renderMenu();
+    await db.collection("barang").doc(nama.toLowerCase()).update({ harga: Number(hargaBaru) });
+    renderMenu();
   }
 }
 
-function renderMenu(){
+async function renderMenu(){
   const keyword = document.getElementById("search").value.toLowerCase();
   const list = document.getElementById("menuList");
   list.innerHTML="";
 
-  barang.filter(b=>b.nama.toLowerCase().includes(keyword))
-  .forEach((b,index)=>{
-    const div=document.createElement("div");
+  const snapshot = await db.collection("barang").get();
+  snapshot.forEach(doc=>{
+    const b = doc.data();
+    if(!b.nama.toLowerCase().includes(keyword)) return;
+    const div = document.createElement("div");
     div.className="card";
     div.innerHTML=`
       <b>${b.nama}</b><br>
-      Rp${b.harga.toLocaleString()}<br><br>
-      <button class='btn-add' onclick="tambahKeCart(${index})">Tambah</button>
-      <button class='btn-edit' onclick="editHarga(${index})">Edit</button>
-      <button class='btn-delete' onclick="hapusBarang(${index})">Hapus</button>
+      Rp${formatRp(b.harga)}<br><br>
+      <button class='btn-add' onclick="tambahKeCart('${b.nama}', ${b.harga})">Tambah</button>
+      <button class='btn-edit' onclick="editHarga('${b.nama}', ${b.harga})">Edit</button>
+      <button class='btn-delete' onclick="hapusBarang('${b.nama}')">Hapus</button>
     `;
     list.appendChild(div);
   });
 }
 
-function tambahKeCart(index){
-  const b = barang[index];
-  const item = cart.find(i=>i.nama===b.nama);
-  if(item){ item.qty++; }
-  else{ cart.push({...b, qty:1}); }
+// ================= Keranjang =================
+function tambahKeCart(nama, harga){
+  const item = cart.find(i=>i.nama===nama);
+  if(item) item.qty++;
+  else cart.push({nama, harga, qty:1});
   renderCart();
 }
 
 function renderCart(){
-  const list=document.getElementById("cartList");
+  const list = document.getElementById("cartList");
   list.innerHTML="";
-  let total=0;
-
+  let total = 0;
   cart.forEach((c,i)=>{
-    const sub=c.harga*c.qty;
+    const sub = c.harga*c.qty;
     total+=sub;
-
     const div=document.createElement("div");
     div.className="cart-item";
     div.innerHTML=`
       <div>
         ${c.nama}<br>
-        <span class="small">Rp${c.harga.toLocaleString()}</span>
+        <span class="small">Rp${formatRp(c.harga)}</span>
       </div>
       <div>
         <button class='qty-btn' onclick="kurangQty(${i})">-</button>
@@ -131,8 +162,7 @@ function renderCart(){
     `;
     list.appendChild(div);
   });
-
-  document.getElementById("total").innerText="Total: Rp"+total.toLocaleString();
+  document.getElementById("total").innerText="Total: Rp"+formatRp(total);
 }
 
 function tambahQty(i){ cart[i].qty++; renderCart(); }
@@ -145,16 +175,19 @@ function hitungKembalian(){
   if(!bayar) return;
   const kembali = bayar-total;
   document.getElementById("kembalian").innerText = kembali>=0
-    ? "Kembalian: Rp"+kembali.toLocaleString()
+    ? "Kembalian: Rp"+formatRp(kembali)
     : "Uang tidak cukup";
 }
 
-function selesaiTransaksi(){
+async function selesaiTransaksi(){
   if(cart.length===0) return;
   const total = cart.reduce((a,b)=>a+(b.harga*b.qty),0);
 
-  riwayat.push({tanggal:new Date().toLocaleString(), total});
-  simpanRiwayat();
+  await db.collection("riwayat").add({
+    tanggal: new Date().toISOString(),
+    total,
+    items: cart
+  });
 
   cart=[];
   document.getElementById("bayar").value="";
@@ -163,36 +196,43 @@ function selesaiTransaksi(){
   renderRiwayat();
 }
 
-function renderRiwayat(){
-  const div=document.getElementById("riwayat");
-  div.innerHTML="";
-  let totalHarian=0;
-
-  riwayat.forEach(r=>{
-    totalHarian+=r.total;
-    const el=document.createElement("div");
-    el.className="card";
-    el.innerHTML=`${r.tanggal}<br>Rp${r.total.toLocaleString()}`;
-    div.appendChild(el);
-  });
-
-  document.getElementById("totalHarian").innerText="Rp"+totalHarian.toLocaleString();
-}
-
 function printStruk(){
   let text="TOKO AMANAH\n================\n";
   let total=0;
   cart.forEach(c=>{
     let sub=c.harga*c.qty;
     total+=sub;
-    text+=`${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;
+    text+=`${c.nama} x${c.qty} Rp${formatRp(sub)}\n`;
   });
-  text+="----------------\nTotal: Rp"+total.toLocaleString();
-
+  text+="----------------\nTotal: Rp"+formatRp(total);
   const w=window.open();
-  w.document.write("<pre>"+text+"</pre>");w.print(); }
+  w.document.write("<pre>"+text+"</pre>");
+  w.print();
+}
 
-renderMenu(); renderRiwayat(); </script>
+// ================= Riwayat =================
+async function renderRiwayat(){
+  const div=document.getElementById("riwayat");
+  div.innerHTML="";
+  let totalHarian=0;
+
+  const snapshot = await db.collection("riwayat").orderBy("tanggal","desc").get();
+  snapshot.forEach(doc=>{
+    const r = doc.data();
+    totalHarian += r.total;
+    const el=document.createElement("div");
+    el.className="card";
+    el.innerHTML=`${new Date(r.tanggal).toLocaleString()}<br>Rp${formatRp(r.total)}`;
+    div.appendChild(el);
+  });
+
+  document.getElementById("totalHarian").innerText="Rp"+formatRp(totalHarian);
+}
+
+// Initial render
+renderMenu();
+renderRiwayat();
+</script>
 
 </body>
 </html>

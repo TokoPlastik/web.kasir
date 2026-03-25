@@ -49,7 +49,6 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:10px;border:none}
 <h2>Menu</h2>
 
 <input id="search" placeholder="Cari..." onkeyup="renderMenu()">
-
 <div id="menuList"></div>
 
 <h3>Tambah Barang</h3>
@@ -123,13 +122,22 @@ localStorage.setItem("barang",JSON.stringify(barang));
 
 nama.value="";
 harga.value="";
-
 renderMenu();
 }
 
+// 🔥 tanggal helper
+function getTanggal(){
+let d=new Date();
+return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+}
+function getBulan(){
+let d=new Date();
+return d.getFullYear()+"-"+(d.getMonth()+1);
+}
+
+// 🔥 search + menu
 function renderMenu(){
 menuList.innerHTML="";
-
 const keyword = document.getElementById("search").value.toLowerCase();
 
 barang
@@ -160,6 +168,7 @@ localStorage.setItem("barang",JSON.stringify(barang));
 renderMenu();
 }
 
+// cart
 function tambahKeCart(i){
 const b=barang[i];
 const it=cart.find(x=>x.nama===b.nama);
@@ -204,10 +213,17 @@ document.getElementById("kembalian").innerText=
 k>=0?"Kembalian: Rp"+k.toLocaleString():"Kurang";
 }
 
+// 🔥 simpan transaksi
 function selesaiTransaksi(){
 let total=cart.reduce((a,b)=>a+(b.harga*b.qty),0);
 
-riwayat.push({tgl:new Date().toLocaleString(),total});
+riwayat.push({
+tgl:new Date().toLocaleString(),
+tanggal:getTanggal(),
+bulan:getBulan(),
+total
+});
+
 localStorage.setItem("riwayat",JSON.stringify(riwayat));
 
 cart=[];
@@ -218,23 +234,65 @@ renderCart();
 renderRiwayat();
 }
 
+// 🔥 render riwayat
 function renderRiwayat(){
 const div=document.getElementById("riwayat");
 div.innerHTML="";
-let total=0;
+
+let today=getTanggal();
+let thisMonth=getBulan();
+
+let totalHari=0;
+let totalBulan=0;
+
+// total bulan
+riwayat.forEach(r=>{
+if(r.bulan===thisMonth){
+totalBulan+=r.total;
+}
+});
+
+// tampil total bulan
+let bulanDiv=document.createElement("div");
+bulanDiv.className="card";
+bulanDiv.innerHTML="Bulan ini: Rp"+totalBulan.toLocaleString();
+div.appendChild(bulanDiv);
+
+// hari ini
+let titleToday=document.createElement("h4");
+titleToday.innerText="Hari Ini";
+div.appendChild(titleToday);
 
 riwayat.forEach(r=>{
-total+=r.total;
+if(r.tanggal===today){
+totalHari+=r.total;
 
 const d=document.createElement("div");
 d.className="card";
 d.innerHTML=`${r.tgl}<br>Rp${r.total.toLocaleString()}`;
 div.appendChild(d);
+}
 });
 
-document.getElementById("totalHarian").innerText="Rp"+total.toLocaleString();
+// sebelumnya
+let titleOld=document.createElement("h4");
+titleOld.innerText="Sebelumnya";
+div.appendChild(titleOld);
+
+riwayat.forEach(r=>{
+if(r.tanggal!==today){
+const d=document.createElement("div");
+d.className="card";
+d.innerHTML=`${r.tgl}<br>Rp${r.total.toLocaleString()}`;
+div.appendChild(d);
+}
+});
+
+// total hari ini
+document.getElementById("totalHarian").innerText="Rp"+totalHari.toLocaleString();
 }
 
+// print
 function printStruk(){
 let text="TOKO AMANAH\n";
 let total=0;

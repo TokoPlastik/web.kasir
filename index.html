@@ -2,14 +2,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toko Amanah - Kasir</title>
+<title>Toko Amanah - Kasir Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:'Poppins',sans-serif;background:#f1f5f9;display:flex;height:100vh}
 .header{position:fixed;top:0;left:0;width:100%;background:#111827;color:white;padding:12px 20px;font-weight:600;z-index:10}
-.menu{width:65%;padding:70px 20px 20px;overflow:auto}
-.cart{width:35%;background:white;padding:70px 20px 20px;display:flex;flex-direction:column;box-shadow:-3px 0 10px rgba(0,0,0,0.1)}
+.menu{width:60%;padding:70px 20px 20px;overflow:auto}
+.cart{width:40%;background:white;padding:70px 20px 20px;display:flex;flex-direction:column;box-shadow:-3px 0 10px rgba(0,0,0,0.1)}
 .card{background:white;padding:12px;border-radius:12px;margin:8px 0;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
 button{border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
 .btn-add{background:#10b981;color:white}
@@ -17,8 +17,10 @@ button{border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1
 .btn-delete{background:#ef4444;color:white}
 .btn-main{background:#111827;color:white;width:100%;padding:10px;margin-top:6px}
 input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc}
-.cart-item{display:flex;justify-content:space-between;background:#f9fafb;padding:10px;border-radius:8px;margin:5px 0}
+.cart-item{display:flex;justify-content:space-between;align-items:center;background:#f9fafb;padding:10px;border-radius:8px;margin:5px 0}
 .total{font-size:18px;font-weight:600;margin-top:auto}
+.small{font-size:12px;color:#666}
+.qty-btn{padding:4px 8px;margin:0 2px}
 </style>
 </head>
 <body><div class="header">🛍️ TOKO AMANAH</div><div class="menu">
@@ -27,7 +29,9 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #c
 <div id="menuList"></div><h3>Tambah / Update Barang</h3>
 <input type="text" id="nama" placeholder="Nama barang">
 <input type="number" id="harga" placeholder="Harga">
-<button class="btn-main" onclick="tambahBarang()">Simpan</button>
+<button class="btn-main" onclick="tambahBarang()">Simpan</button><h3>📊 Total Hari Ini</h3>
+<div id="totalHarian" class="card">Rp0</div><h3>📜 Riwayat Transaksi</h3>
+<div id="riwayat"></div>
 </div><div class="cart">
 <h2>Keranjang</h2>
 <div id="cartList"></div>
@@ -36,12 +40,14 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #c
 <div id="kembalian"></div>
 <button class="btn-main" onclick="hitungKembalian()">Hitung Kembalian</button>
 <button class="btn-main" onclick="printStruk()">Print Struk</button>
-<button class="btn-main" onclick="selesaiTransaksi()">Selesai (Tanpa Print)</button>
+<button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
 </div><script>
 let barang = JSON.parse(localStorage.getItem("barang")) || [];
 let cart = [];
+let riwayat = JSON.parse(localStorage.getItem("riwayat")) || [];
 
 function simpan(){ localStorage.setItem("barang", JSON.stringify(barang)); }
+function simpanRiwayat(){ localStorage.setItem("riwayat", JSON.stringify(riwayat)); }
 
 function tambahBarang(){
   const nama = document.getElementById("nama").value.trim();
@@ -52,8 +58,7 @@ function tambahBarang(){
   if(existing){ existing.harga = Number(harga); }
   else{ barang.push({nama, harga:Number(harga)}); }
 
-  simpan();
-  renderMenu();
+  simpan(); renderMenu();
   document.getElementById("nama").value="";
   document.getElementById("harga").value="";
 }
@@ -61,17 +66,15 @@ function tambahBarang(){
 function hapusBarang(index){
   if(confirm("Hapus barang?")){
     barang.splice(index,1);
-    simpan();
-    renderMenu();
+    simpan(); renderMenu();
   }
 }
 
 function editHarga(index){
   const hargaBaru = prompt("Harga baru:", barang[index].harga);
-  if(hargaBaru !== null && hargaBaru !== ""){
+  if(hargaBaru){
     barang[index].harga = Number(hargaBaru);
-    simpan();
-    renderMenu();
+    simpan(); renderMenu();
   }
 }
 
@@ -108,17 +111,33 @@ function renderCart(){
   list.innerHTML="";
   let total=0;
 
-  cart.forEach((c)=>{
+  cart.forEach((c,i)=>{
     const sub=c.harga*c.qty;
     total+=sub;
+
     const div=document.createElement("div");
     div.className="cart-item";
-    div.innerHTML=`${c.nama} x${c.qty} <span>Rp${sub.toLocaleString()}</span>`;
+    div.innerHTML=`
+      <div>
+        ${c.nama}<br>
+        <span class="small">Rp${c.harga.toLocaleString()}</span>
+      </div>
+      <div>
+        <button class='qty-btn' onclick="kurangQty(${i})">-</button>
+        ${c.qty}
+        <button class='qty-btn' onclick="tambahQty(${i})">+</button>
+        <button class='btn-delete' onclick="hapusItem(${i})">x</button>
+      </div>
+    `;
     list.appendChild(div);
   });
 
   document.getElementById("total").innerText="Total: Rp"+total.toLocaleString();
 }
+
+function tambahQty(i){ cart[i].qty++; renderCart(); }
+function kurangQty(i){ if(cart[i].qty>1){cart[i].qty--;} else{cart.splice(i,1);} renderCart(); }
+function hapusItem(i){ cart.splice(i,1); renderCart(); }
 
 function hitungKembalian(){
   const bayar = Number(document.getElementById("bayar").value);
@@ -130,18 +149,34 @@ function hitungKembalian(){
     : "Uang tidak cukup";
 }
 
-function resetCart(){
-  cart = [];
-  document.getElementById("bayar").value = "";
-  document.getElementById("kembalian").innerText = "";
+function selesaiTransaksi(){
+  if(cart.length===0) return;
+  const total = cart.reduce((a,b)=>a+(b.harga*b.qty),0);
+
+  riwayat.push({tanggal:new Date().toLocaleString(), total});
+  simpanRiwayat();
+
+  cart=[];
+  document.getElementById("bayar").value="";
+  document.getElementById("kembalian").innerText="";
   renderCart();
+  renderRiwayat();
 }
 
-function selesaiTransaksi(){
-  if(cart.length === 0) return;
-  if(confirm("Selesaikan transaksi?")){
-    resetCart();
-  }
+function renderRiwayat(){
+  const div=document.getElementById("riwayat");
+  div.innerHTML="";
+  let totalHarian=0;
+
+  riwayat.forEach(r=>{
+    totalHarian+=r.total;
+    const el=document.createElement("div");
+    el.className="card";
+    el.innerHTML=`${r.tanggal}<br>Rp${r.total.toLocaleString()}`;
+    div.appendChild(el);
+  });
+
+  document.getElementById("totalHarian").innerText="Rp"+totalHarian.toLocaleString();
 }
 
 function printStruk(){
@@ -157,7 +192,7 @@ function printStruk(){
   const w=window.open();
   w.document.write("<pre>"+text+"</pre>");w.print(); }
 
-renderMenu(); </script>
+renderMenu(); renderRiwayat(); </script>
 
 </body>
 </html>

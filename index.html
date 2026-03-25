@@ -1,8 +1,9 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toko </title>
+<title>Toko Amanah</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
@@ -29,35 +30,58 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:10px;border:none}
 }
 </style>
 </head>
-<body><div class="login" id="loginPage">
+<body>
+
+<div class="login" id="loginPage">
 <div class="login-box">
 <h2>Toko Amanah</h2>
 <input id="username" placeholder="Username">
 <input id="password" type="password" placeholder="Password">
 <button class="btn-main" onclick="login()">Login</button>
 </div>
-</div><div class="app" id="app">
+</div>
+
+<div class="app" id="app">
 <div class="header">🚀 TOKO AMANAH FUTURISTIC</div>
-<div class="container"><div class="menu">
+
+<div class="container">
+<div class="menu">
 <h2>Menu</h2>
+
 <input id="search" placeholder="Cari..." onkeyup="renderMenu()">
-<div id="menuList"></div><h3>Tambah Barang</h3>
+
+<div id="menuList"></div>
+
+<h3>Tambah Barang</h3>
 <input id="nama" placeholder="Nama">
 <input id="harga" placeholder="Harga (5.000)" oninput="formatRupiah(this)">
-<button class="btn-main" onclick="tambahBarang()">Simpan</button><h3>Total Hari Ini</h3>
-<div id="totalHarian" class="card">Rp0</div><h3>Riwayat</h3>
+<button class="btn-main" onclick="tambahBarang()">Simpan</button>
+
+<h3>Total Hari Ini</h3>
+<div id="totalHarian" class="card">Rp0</div>
+
+<h3>Riwayat</h3>
 <div id="riwayat"></div>
-</div><div class="cart">
+
+</div>
+
+<div class="cart">
 <h2>Keranjang</h2>
 <div id="cartList"></div>
 <div class="total" id="total">Total: Rp0</div>
+
 <input id="bayar" placeholder="Bayar" oninput="formatRupiah(this)">
 <div id="kembalian"></div>
+
 <button class="btn-main" onclick="hitungKembalian()">Hitung</button>
 <button class="btn-main" onclick="printStruk()">Print</button>
 <button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
-</div></div>
-</div><script>
+
+</div>
+</div>
+</div>
+
+<script>
 const user={username:"admin",password:"123"};
 let barang=JSON.parse(localStorage.getItem("barang"))||[];
 let cart=[];
@@ -70,24 +94,49 @@ showApp();
 }else alert("Salah");
 }
 
-function showApp(){loginPage.style.display="none";app.style.display="block";renderMenu();renderCart();renderRiwayat()}
+function showApp(){
+loginPage.style.display="none";
+app.style.display="block";
+renderMenu();
+renderCart();
+renderRiwayat();
+}
+
 if(localStorage.getItem("login"))showApp()
 
-function formatRupiah(input){let v=input.value.replace(/\D/g,"");input.value=v.replace(/\B(?=(\d{3})+(?!\d))/g,".")}
-function parseRupiah(v){return Number((v||"").replace(/\./g,""))}
+function formatRupiah(input){
+let v=input.value.replace(/\D/g,"");
+input.value=v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+}
+
+function parseRupiah(v){
+return Number((v||"").replace(/\./g,""))
+}
 
 function tambahBarang(){
-const n=nama.value; const h=parseRupiah(harga.value);
+const n=nama.value;
+const h=parseRupiah(harga.value);
 if(!n||!h)return;
+
 barang.push({nama:n,harga:h});
 localStorage.setItem("barang",JSON.stringify(barang));
+
+nama.value="";
+harga.value="";
+
 renderMenu();
 }
 
 function renderMenu(){
 menuList.innerHTML="";
-barang.forEach((b,i)=>{
-const d=document.createElement("div");d.className="card";
+
+const keyword = document.getElementById("search").value.toLowerCase();
+
+barang
+.filter(b => b.nama.toLowerCase().includes(keyword))
+.forEach((b,i)=>{
+const d=document.createElement("div");
+d.className="card";
 d.innerHTML=`${b.nama}<br>Rp${b.harga.toLocaleString()}<br>
 <button class='btn-add' onclick="tambahKeCart(${i})">Tambah</button>
 <button class='btn-edit' onclick="editBarang(${i})">Edit</button>
@@ -98,23 +147,37 @@ menuList.appendChild(d);
 
 function editBarang(i){
 const h=prompt("Harga baru",barang[i].harga);
-if(h){barang[i].harga=Number(h);localStorage.setItem("barang",JSON.stringify(barang));renderMenu();}
+if(h){
+barang[i].harga=Number(h);
+localStorage.setItem("barang",JSON.stringify(barang));
+renderMenu();
+}
 }
 
-function hapusBarang(i){barang.splice(i,1);localStorage.setItem("barang",JSON.stringify(barang));renderMenu();}
+function hapusBarang(i){
+barang.splice(i,1);
+localStorage.setItem("barang",JSON.stringify(barang));
+renderMenu();
+}
 
 function tambahKeCart(i){
 const b=barang[i];
 const it=cart.find(x=>x.nama===b.nama);
-if(it)it.qty++; else cart.push({nama:b.nama,harga:b.harga,qty:1});
+if(it)it.qty++;
+else cart.push({nama:b.nama,harga:b.harga,qty:1});
 renderCart();
 }
 
 function renderCart(){
-cartList.innerHTML="";let total=0;
+cartList.innerHTML="";
+let total=0;
+
 cart.forEach((c,i)=>{
-let sub=c.harga*c.qty;total+=sub;
-const d=document.createElement("div");d.className="cart-item";
+let sub=c.harga*c.qty;
+total+=sub;
+
+const d=document.createElement("div");
+d.className="cart-item";
 d.innerHTML=`<div>${c.nama}<br>Rp${c.harga.toLocaleString()}</div>
 <div>
 <button onclick="kurangQty(${i})">-</button>
@@ -124,6 +187,7 @@ ${c.qty}
 </div>`;
 cartList.appendChild(d);
 });
+
 document.getElementById("total").innerText="Total: Rp"+total.toLocaleString();
 }
 
@@ -135,39 +199,59 @@ function hitungKembalian(){
 let bayar=parseRupiah(document.getElementById("bayar").value);
 let total=cart.reduce((a,b)=>a+(b.harga*b.qty),0);
 let k=bayar-total;
-document.getElementById("kembalian").innerText=k>=0?"Kembalian: Rp"+k.toLocaleString():"Kurang";
+
+document.getElementById("kembalian").innerText=
+k>=0?"Kembalian: Rp"+k.toLocaleString():"Kurang";
 }
 
 function selesaiTransaksi(){
 let total=cart.reduce((a,b)=>a+(b.harga*b.qty),0);
+
 riwayat.push({tgl:new Date().toLocaleString(),total});
 localStorage.setItem("riwayat",JSON.stringify(riwayat));
+
 cart=[];
 document.getElementById("bayar").value="";
 document.getElementById("kembalian").innerText="";
-renderCart();renderRiwayat();
+
+renderCart();
+renderRiwayat();
 }
 
 function renderRiwayat(){
 const div=document.getElementById("riwayat");
 div.innerHTML="";
 let total=0;
+
 riwayat.forEach(r=>{
 total+=r.total;
+
 const d=document.createElement("div");
 d.className="card";
 d.innerHTML=`${r.tgl}<br>Rp${r.total.toLocaleString()}`;
 div.appendChild(d);
 });
+
 document.getElementById("totalHarian").innerText="Rp"+total.toLocaleString();
 }
 
 function printStruk(){
 let text="TOKO AMANAH\n";
 let total=0;
-cart.forEach(c=>{let sub=c.harga*c.qty;total+=sub;text+=`${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;});
+
+cart.forEach(c=>{
+let sub=c.harga*c.qty;
+total+=sub;
+text+=`${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;
+});
+
 text+="Total: Rp"+total.toLocaleString();
-const w=window.open();w.document.write("<pre>"+text+"</pre>");w.print();} </script>
+
+const w=window.open();
+w.document.write("<pre>"+text+"</pre>");
+w.print();
+}
+</script>
 
 </body>
 </html>

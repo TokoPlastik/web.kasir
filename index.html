@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toko Amanah - Kasir</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Poppins',sans-serif;background:#f1f5f9;display:flex;height:100vh}.header{position:fixed;top:0;left:0;width:100%;background:#111827;color:white;padding:12px 20px;font-weight:600;z-index:10}
+
+.menu{width:65%;padding:70px 20px 20px;overflow:auto} .cart{width:35%;background:white;padding:70px 20px 20px;display:flex;flex-direction:column;box-shadow:-3px 0 10px rgba(0,0,0,0.1)}
+
+h2{margin:10px 0}
+
+.card{background:white;padding:12px;border-radius:12px;margin:8px 0;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+
+button{border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px} .btn-add{background:#10b981;color:white} .btn-edit{background:#3b82f6;color:white} .btn-delete{background:#ef4444;color:white} .btn-main{background:#111827;color:white;width:100%;padding:10px;margin-top:6px}
+
+input{width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc}
+
+.cart-item{display:flex;justify-content:space-between;background:#f9fafb;padding:10px;border-radius:8px;margin:5px 0}
+
+.total{font-size:18px;font-weight:600;margin-top:auto}
+
+</style>
+</head>
+<body><div class="header">🛍️ TOKO AMANAH</div><div class="menu">
+<h2>Menu Barang</h2>
+<input type="text" id="search" placeholder="Cari barang..." onkeyup="renderMenu()">
+<div id="menuList"></div><h3>Tambah / Update Barang</h3>
+<input type="text" id="nama" placeholder="Nama barang">
+<input type="number" id="harga" placeholder="Harga">
+<button class="btn-main" onclick="tambahBarang()">Simpan</button>
+</div><div class="cart">
+<h2>Keranjang</h2>
+<div id="cartList"></div>
+<div class="total" id="total">Total: Rp0</div>
+<input type="number" id="bayar" placeholder="Uang bayar">
+<div id="kembalian"></div>
+<button class="btn-main" onclick="hitungKembalian()">Hitung Kembalian</button>
+<button class="btn-main" onclick="printStruk()">Print Struk</button>
+</div><script>
+let barang = JSON.parse(localStorage.getItem("barang")) || [];
+let cart = [];
+
+function simpan(){ localStorage.setItem("barang", JSON.stringify(barang)); }
+
+function tambahBarang(){
+  const nama = document.getElementById("nama").value.trim();
+  const harga = document.getElementById("harga").value;
+  if(!nama || !harga) return alert("Isi semua");
+
+  const existing = barang.find(b=>b.nama.toLowerCase()===nama.toLowerCase());
+  if(existing){ existing.harga = Number(harga); }
+  else{ barang.push({nama, harga:Number(harga)}); }
+
+  simpan();
+  renderMenu();
+  document.getElementById("nama").value="";
+  document.getElementById("harga").value="";
+}
+
+function hapusBarang(index){
+  if(confirm("Hapus barang?")){
+    barang.splice(index,1);
+    simpan();
+    renderMenu();
+  }
+}
+
+function editHarga(index){
+  const hargaBaru = prompt("Harga baru:", barang[index].harga);
+  if(hargaBaru){
+    barang[index].harga = Number(hargaBaru);
+    simpan();
+    renderMenu();
+  }
+}
+
+function renderMenu(){
+  const keyword = document.getElementById("search").value.toLowerCase();
+  const list = document.getElementById("menuList");
+  list.innerHTML="";
+
+  barang.filter(b=>b.nama.toLowerCase().includes(keyword))
+  .forEach((b,index)=>{
+    const div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=`
+      <b>${b.nama}</b><br>
+      Rp${b.harga.toLocaleString()}<br><br>
+      <button class='btn-add' onclick="tambahKeCart(${index})">Tambah</button>
+      <button class='btn-edit' onclick="editHarga(${index})">Edit</button>
+      <button class='btn-delete' onclick="hapusBarang(${index})">Hapus</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function tambahKeCart(index){
+  const b = barang[index];
+  const item = cart.find(i=>i.nama===b.nama);
+  if(item){ item.qty++; }
+  else{ cart.push({...b, qty:1}); }
+  renderCart();
+}
+
+function renderCart(){
+  const list=document.getElementById("cartList");
+  list.innerHTML="";
+  let total=0;
+
+  cart.forEach((c,i)=>{
+    const sub=c.harga*c.qty;
+    total+=sub;
+    const div=document.createElement("div");
+    div.className="cart-item";
+    div.innerHTML=`${c.nama} x${c.qty} <span>Rp${sub.toLocaleString()}</span>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById("total").innerText="Total: Rp"+total.toLocaleString();
+}
+
+function hitungKembalian(){
+  const bayar = Number(document.getElementById("bayar").value);
+  const total = cart.reduce((a,b)=>a+(b.harga*b.qty),0);
+  if(!bayar) return;
+  const kembali = bayar-total;
+  document.getElementById("kembalian").innerText = kembali>=0
+    ? "Kembalian: Rp"+kembali.toLocaleString()
+    : "Uang tidak cukup";
+}
+
+function printStruk(){
+  let text="TOKO AMANAH\n================\n";
+  let total=0;
+  cart.forEach(c=>{
+    let sub=c.harga*c.qty;
+    total+=sub;
+    text+=`${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;
+  });
+  text+="----------------\nTotal: Rp"+total.toLocaleString();
+
+  const w=window.open();
+  w.document.write("<pre>"+text+"</pre>");w.print(); }
+
+renderMenu(); </script>
+
+</body>
+</html>

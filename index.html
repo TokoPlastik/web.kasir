@@ -1,80 +1,118 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toko Amanah Futuristik</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:'Poppins',sans-serif;background:#020617;color:white}
-.header{position:fixed;top:0;width:100%;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);padding:12px;text-align:center;font-weight:600}
-.container{display:flex;flex-direction:column;height:100vh}
-.menu,.cart{padding:70px 15px 15px}
-.card{background:rgba(255,255,255,0.05);padding:12px;border-radius:12px;margin:8px 0;border:1px solid rgba(255,255,255,0.1)}
-button{border:none;border-radius:10px;padding:6px 10px;margin:2px;cursor:pointer}
-.btn-add{background:#22c55e}
-.btn-edit{background:#3b82f6}
-.btn-delete{background:#ef4444}
-.btn-main{background:#0ea5e9;width:100%;padding:12px;margin-top:6px}
-input{width:100%;padding:10px;margin:5px 0;border-radius:10px;border:none}
-.cart-item{display:flex;justify-content:space-between;background:rgba(255,255,255,0.05);padding:10px;border-radius:10px}
-.total{font-size:18px;margin-top:10px}
-.login{display:flex;justify-content:center;align-items:center;height:100vh}
-.login-box{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;width:90%;max-width:400px}
-.app{display:none}
-@media(min-width:768px){
-.container{flex-direction:row}
-.menu{width:60%}
-.cart{width:40%}
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toko Plastik Pasar Lama</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; font-family: 'Poppins', sans-serif; background: #0f172a; color: white; height: 100vh; overflow: hidden; }
+        
+        /* HEADER */
+        .header { position: fixed; top: 0; width: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); padding: 12px 20px; text-align: center; font-weight: 600; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 2px solid #0ea5e9; }
+        .nav-btn { background: #0ea5e9; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; margin-left: 8px; font-size: 13px; transition: all 0.3s; font-weight: 600; }
+        .nav-btn:hover { background: #0284c7; transform: translateY(-2px); }
+        
+        /* LAYOUT */
+        .container { display: flex; flex-direction: column; height: 100vh; padding-top: 75px; }
+        .app { display: none; height: 100%; }
+        
+        .menu, .cart, .riwayat-page { padding: 25px; overflow-y: auto; height: 100%; scrollbar-width: thin; scrollbar-color: #0ea5e9 transparent; }
+        
+        /* CARDS & INPUTS */
+        .card { background: rgba(30, 41, 59, 0.7); padding: 18px; border-radius: 16px; margin: 12px 0; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s; }
+        .card:hover { border-color: #0ea5e9; }
+        
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); color: white; font-size: 15px; outline: none; }
+        input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); }
+        
+        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; margin-top: 10px; transition: 0.3s; color: white; }
+        .btn-main:active { transform: scale(0.98); }
+        
+        .btn-add { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+        
+        /* CART ITEM */
+        .cart-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; margin-bottom: 10px; }
+        .qty-btn { background: #334155; color: white; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
+
+        /* LOGIN */
+        .login { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .login-box { background: rgba(30, 41, 59, 0.8); padding: 40px; border-radius: 24px; width: 380px; text-align: center; border: 1px solid rgba(14, 165, 233, 0.3); box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+        .login-box h2 { font-size: 24px; margin-bottom: 25px; color: #0ea5e9; }
+
+        @media(min-width:768px){
+            .container { flex-direction: row; }
+            .menu { width: 60%; border-right: 1px solid rgba(255,255,255,0.1); }
+            .cart { width: 40%; background: rgba(15, 23, 42, 0.3); }
+        }
+    </style>
 </head>
 <body>
 
 <div class="login" id="loginPage">
-  <div class="login-box">
-    <h2>Toko Amanah Futuristik</h2>
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
-    <button class="btn-main" id="btnLogin">Login</button>
-  </div>
+    <div class="login-box">
+        <h2>🛍️ Toko Plastik<br><span style="color:white; font-size: 0.8em;">Pasar Lama</span></h2>
+        <input id="username" placeholder="Username (admin)">
+        <input id="password" type="password" placeholder="Password (123)">
+        <button class="btn-main" id="btnLogin" style="background: #0ea5e9;">Masuk Sistem</button>
+    </div>
 </div>
 
 <div class="app" id="app">
-  <div class="header">🚀 TOKO AMANAH FUTURISTIC</div>
-
-  <div class="container">
-    <div class="menu">
-      <h2>Menu</h2>
-      <input id="search" placeholder="Cari..." onkeyup="renderMenu()">
-      <div id="menuList"></div>
-
-      <h3>Tambah Barang</h3>
-      <input id="nama" placeholder="Nama">
-      <input id="harga" placeholder="Harga (5.000)" oninput="formatRupiah(this)">
-      <button class="btn-main" onclick="tambahBarang()">Simpan</button>
-
-      <h3>Total Hari Ini</h3>
-      <div id="totalHarian" class="card">Rp0</div>
-
-      <h3>Riwayat</h3>
-      <div id="riwayat"></div>
+    <div class="header">
+        <span style="font-size: 1.1em; letter-spacing: 1px;">📦 TOKO PLASTIK <span style="color: #0ea5e9;">PASAR LAMA</span></span>
+        <div>
+            <button class="nav-btn" onclick="showMenuPage()">📋 Menu</button>
+            <button class="nav-btn" onclick="showRiwayatPage()">📊 Riwayat</button>
+        </div>
     </div>
+    
+    <div class="container">
+        <div class="menu" id="menuPage">
+            <div id="tambahSection" class="card" style="border: 2px dashed #10b981; background: rgba(16, 185, 129, 0.05);">
+                <h3 style="margin:0 0 15px 0; color:#10b981; font-size: 1.1em;">➕ Tambah Stok Barang</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input id="nama" placeholder="Nama plastik/barang...">
+                    <input id="harga" placeholder="Harga (Rp)" oninput="formatRupiah(this)">
+                </div>
+                <button class="btn-main" onclick="tambahBarang()" style="background:#10b981;">Simpan ke Database</button>
+            </div>
 
-    <div class="cart">
-      <h2>Keranjang</h2>
-      <div id="cartList"></div>
-      <div class="total" id="total">Total: Rp0</div>
+            <input id="search" placeholder="🔍 Cari plastik atau harga..." style="margin-top:20px;">
+            <h4 style="color: #94a3b8; margin: 20px 0 10px 0;">📦 DAFTAR STOK</h4>
+            <div id="menuList"></div>
+            
+            <div class="card" style="background: linear-gradient(90deg, #0f172a, #1e293b); border-left: 5px solid #10b981;">
+                <small style="color: #94a3b8;">💰 Total Penjualan Hari Ini:</small>
+                <div id="totalHarian" style="font-size: 1.8em; font-weight: 600; color:#10b981;">Rp0</div>
+            </div>
+        </div>
 
-      <input id="bayar" placeholder="Bayar" oninput="formatRupiah(this)">
-      <div id="kembalian"></div>
+        <div class="riwayat-page" id="riwayatPage" style="display:none; width:100%;">
+            <h2 style="color: #0ea5e9;">📊 Riwayat Penjualan</h2>
+            <div id="riwayat"></div>
+            <button class="btn-main" onclick="clearRiwayat()" style="background:#ef4444; margin-top: 30px;">🗑️ Kosongkan Riwayat</button>
+        </div>
 
-      <button class="btn-main" onclick="hitungKembalian()">Hitung</button>
-      <button class="btn-main" onclick="printStruk()">Print</button>
-      <button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
+        <div class="cart" id="cartSection">
+            <h2 style="font-size: 1.4em; margin-bottom: 20px;">🛒 Keranjang Belanja</h2>
+            <div id="cartList" style="min-height: 200px;"></div>
+            
+            <div class="card" style="background: rgba(15, 23, 42, 0.8);">
+                <h3 id="total" style="margin: 0; color: #10b981; font-size: 1.5em;">Total: Rp0</h3>
+                <input id="bayar" placeholder="💵 Uang Tunai" oninput="formatRupiah(this); hitungKembalian()">
+                <div id="kembalian" style="padding:12px; border-radius:10px; margin:10px 0; font-weight: 600; text-align: center;">Kembalian: Rp0</div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-main" onclick="printStruk()" style="background:#334155; flex: 1;">🖨️ Struk</button>
+                    <button class="btn-main" onclick="selesaiTransaksi()" style="background:#0ea5e9; flex: 2;">✅ Selesai</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <script type="module" src="./app.js"></script>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toko Amanah</title>
+<title>Toko Amanah Futuristik</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
@@ -21,7 +21,7 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:10px;border:none}
 .cart-item{display:flex;justify-content:space-between;background:rgba(255,255,255,0.05);padding:10px;border-radius:10px}
 .total{font-size:18px;margin-top:10px}
 .login{display:flex;justify-content:center;align-items:center;height:100vh}
-.login-box{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px}
+.login-box{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;width:90%;max-width:400px}
 .app{display:none}
 @media(min-width:768px){
 .container{flex-direction:row}
@@ -33,283 +33,50 @@ input{width:100%;padding:10px;margin:5px 0;border-radius:10px;border:none}
 <body>
 
 <div class="login" id="loginPage">
-<div class="login-box">
-<h2>Toko Amanah</h2>
-<input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
-<button class="btn-main" onclick="login()">Login</button>
-</div>
+  <div class="login-box">
+    <h2>Toko Amanah Futuristik</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn-main" id="btnLogin">Login</button>
+  </div>
 </div>
 
 <div class="app" id="app">
-<div class="header">🚀 TOKO AMANAH FUTURISTIC</div>
+  <div class="header">🚀 TOKO AMANAH FUTURISTIC</div>
 
-<div class="container">
-<div class="menu">
-<h2>Menu</h2>
+  <div class="container">
+    <div class="menu">
+      <h2>Menu</h2>
+      <input id="search" placeholder="Cari..." onkeyup="renderMenu()">
+      <div id="menuList"></div>
 
-<input id="search" placeholder="Cari..." onkeyup="renderMenu()">
-<div id="menuList"></div>
+      <h3>Tambah Barang</h3>
+      <input id="nama" placeholder="Nama">
+      <input id="harga" placeholder="Harga (5.000)" oninput="formatRupiah(this)">
+      <button class="btn-main" onclick="tambahBarang()">Simpan</button>
 
-<h3>Tambah Barang</h3>
-<input id="nama" placeholder="Nama">
-<input id="harga" placeholder="Harga (5.000)" oninput="formatRupiah(this)">
-<button class="btn-main" onclick="tambahBarang()">Simpan</button>
+      <h3>Total Hari Ini</h3>
+      <div id="totalHarian" class="card">Rp0</div>
 
-<h3>Total Hari Ini</h3>
-<div id="totalHarian" class="card">Rp0</div>
+      <h3>Riwayat</h3>
+      <div id="riwayat"></div>
+    </div>
 
-<h3>Riwayat</h3>
-<div id="riwayat"></div>
+    <div class="cart">
+      <h2>Keranjang</h2>
+      <div id="cartList"></div>
+      <div class="total" id="total">Total: Rp0</div>
 
+      <input id="bayar" placeholder="Bayar" oninput="formatRupiah(this)">
+      <div id="kembalian"></div>
+
+      <button class="btn-main" onclick="hitungKembalian()">Hitung</button>
+      <button class="btn-main" onclick="printStruk()">Print</button>
+      <button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
+    </div>
+  </div>
 </div>
 
-<div class="cart">
-<h2>Keranjang</h2>
-<div id="cartList"></div>
-<div class="total" id="total">Total: Rp0</div>
-
-<input id="bayar" placeholder="Bayar" oninput="formatRupiah(this)">
-<div id="kembalian"></div>
-
-<button class="btn-main" onclick="hitungKembalian()">Hitung</button>
-<button class="btn-main" onclick="printStruk()">Print</button>
-<button class="btn-main" onclick="selesaiTransaksi()">Selesai</button>
-
-</div>
-</div>
-</div>
-
-<script>
-const user={username:"admin",password:"123"};
-let barang=JSON.parse(localStorage.getItem("barang"))||[];
-let cart=[];
-let riwayat=JSON.parse(localStorage.getItem("riwayat"))||[];
-
-function login(){
-if(username.value===user.username && password.value===user.password){
-localStorage.setItem("login","true");
-showApp();
-}else alert("Salah");
-}
-
-function showApp(){
-loginPage.style.display="none";
-app.style.display="block";
-renderMenu();
-renderCart();
-renderRiwayat();
-}
-
-if(localStorage.getItem("login"))showApp()
-
-function formatRupiah(input){
-let v=input.value.replace(/\D/g,"");
-input.value=v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-}
-
-function parseRupiah(v){
-return Number((v||"").replace(/\./g,""))
-}
-
-function tambahBarang(){
-const n=nama.value;
-const h=parseRupiah(harga.value);
-if(!n||!h)return;
-
-barang.push({nama:n,harga:h});
-localStorage.setItem("barang",JSON.stringify(barang));
-
-nama.value="";
-harga.value="";
-renderMenu();
-}
-
-// 🔥 tanggal helper
-function getTanggal(){
-let d=new Date();
-return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
-}
-function getBulan(){
-let d=new Date();
-return d.getFullYear()+"-"+(d.getMonth()+1);
-}
-
-// 🔥 search + menu
-function renderMenu(){
-menuList.innerHTML="";
-const keyword = document.getElementById("search").value.toLowerCase();
-
-barang
-.filter(b => b.nama.toLowerCase().includes(keyword))
-.forEach((b,i)=>{
-const d=document.createElement("div");
-d.className="card";
-d.innerHTML=`${b.nama}<br>Rp${b.harga.toLocaleString()}<br>
-<button class='btn-add' onclick="tambahKeCart(${i})">Tambah</button>
-<button class='btn-edit' onclick="editBarang(${i})">Edit</button>
-<button class='btn-delete' onclick="hapusBarang(${i})">Hapus</button>`;
-menuList.appendChild(d);
-});
-}
-
-function editBarang(i){
-const h=prompt("Harga baru",barang[i].harga);
-if(h){
-barang[i].harga=Number(h);
-localStorage.setItem("barang",JSON.stringify(barang));
-renderMenu();
-}
-}
-
-function hapusBarang(i){
-barang.splice(i,1);
-localStorage.setItem("barang",JSON.stringify(barang));
-renderMenu();
-}
-
-// cart
-function tambahKeCart(i){
-const b=barang[i];
-const it=cart.find(x=>x.nama===b.nama);
-if(it)it.qty++;
-else cart.push({nama:b.nama,harga:b.harga,qty:1});
-renderCart();
-}
-
-function renderCart(){
-cartList.innerHTML="";
-let total=0;
-
-cart.forEach((c,i)=>{
-let sub=c.harga*c.qty;
-total+=sub;
-
-const d=document.createElement("div");
-d.className="cart-item";
-d.innerHTML=`<div>${c.nama}<br>Rp${c.harga.toLocaleString()}</div>
-<div>
-<button onclick="kurangQty(${i})">-</button>
-${c.qty}
-<button onclick="tambahQty(${i})">+</button>
-<button class='btn-delete' onclick="hapusItem(${i})">x</button>
-</div>`;
-cartList.appendChild(d);
-});
-
-document.getElementById("total").innerText="Total: Rp"+total.toLocaleString();
-}
-
-function tambahQty(i){cart[i].qty++;renderCart()}
-function kurangQty(i){if(cart[i].qty>1)cart[i].qty--;else cart.splice(i,1);renderCart()}
-function hapusItem(i){cart.splice(i,1);renderCart()}
-
-function hitungKembalian(){
-let bayar=parseRupiah(document.getElementById("bayar").value);
-let total=cart.reduce((a,b)=>a+(b.harga*b.qty),0);
-let k=bayar-total;
-
-document.getElementById("kembalian").innerText=
-k>=0?"Kembalian: Rp"+k.toLocaleString():"Kurang";
-}
-
-// 🔥 simpan transaksi
-function selesaiTransaksi(){
-let total=cart.reduce((a,b)=>a+(b.harga*b.qty),0);
-
-riwayat.push({
-tgl:new Date().toLocaleString(),
-tanggal:getTanggal(),
-bulan:getBulan(),
-total
-});
-
-localStorage.setItem("riwayat",JSON.stringify(riwayat));
-
-cart=[];
-document.getElementById("bayar").value="";
-document.getElementById("kembalian").innerText="";
-
-renderCart();
-renderRiwayat();
-}
-
-// 🔥 render riwayat
-function renderRiwayat(){
-const div=document.getElementById("riwayat");
-div.innerHTML="";
-
-let today=getTanggal();
-let thisMonth=getBulan();
-
-let totalHari=0;
-let totalBulan=0;
-
-// total bulan
-riwayat.forEach(r=>{
-if(r.bulan===thisMonth){
-totalBulan+=r.total;
-}
-});
-
-// tampil total bulan
-let bulanDiv=document.createElement("div");
-bulanDiv.className="card";
-bulanDiv.innerHTML="Bulan ini: Rp"+totalBulan.toLocaleString();
-div.appendChild(bulanDiv);
-
-// hari ini
-let titleToday=document.createElement("h4");
-titleToday.innerText="Hari Ini";
-div.appendChild(titleToday);
-
-riwayat.forEach(r=>{
-if(r.tanggal===today){
-totalHari+=r.total;
-
-const d=document.createElement("div");
-d.className="card";
-d.innerHTML=`${r.tgl}<br>Rp${r.total.toLocaleString()}`;
-div.appendChild(d);
-}
-});
-
-// sebelumnya
-let titleOld=document.createElement("h4");
-titleOld.innerText="Sebelumnya";
-div.appendChild(titleOld);
-
-riwayat.forEach(r=>{
-if(r.tanggal!==today){
-const d=document.createElement("div");
-d.className="card";
-d.innerHTML=`${r.tgl}<br>Rp${r.total.toLocaleString()}`;
-div.appendChild(d);
-}
-});
-
-// total hari ini
-document.getElementById("totalHarian").innerText="Rp"+totalHari.toLocaleString();
-}
-
-// print
-function printStruk(){
-let text="TOKO AMANAH\n";
-let total=0;
-
-cart.forEach(c=>{
-let sub=c.harga*c.qty;
-total+=sub;
-text+=`${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;
-});
-
-text+="Total: Rp"+total.toLocaleString();
-
-const w=window.open();
-w.document.write("<pre>"+text+"</pre>");
-w.print();
-}
-</script>
-
+<script type="module" src="./app.js"></script>
 </body>
 </html>

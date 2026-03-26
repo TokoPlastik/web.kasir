@@ -20,40 +20,35 @@ const kembalianDisplay = document.getElementById("kembalian");
 
 // ==== LOGIN ====
 const user = { username: "admin", password: "123" };
-btnLogin.addEventListener("click", login);
-password.addEventListener("keyup", e => { if(e.key==="Enter") login(); });
 
-function login(){
-  if(username.value===user.username && password.value===user.password){
-    loginPage.style.display="none";
-    appDiv.style.display="block";
-    initRealtime();
+btnLogin.addEventListener("click", login);
+password.addEventListener("keypress", function(e){
+  if(e.key === "Enter") btnLogin.click();
+});
+
+function login() {
+  if(username.value === user.username && password.value === user.password){
+    loginPage.style.display = "none";
+    appDiv.style.display = "block";
+    initRealtime(); // <-- pastikan ini dipanggil
   } else alert("Salah");
 }
 
 // ==== UTILITY ====
-function formatRupiahInput(input){
+function formatRupiah(input){
   let v = input.value.replace(/\D/g,"");
-  if(v === "") input.value="";
-  else input.value = v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  input.value = v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
 }
-
 function parseRupiah(v){
   return Number((v||"").replace(/\./g,""));
 }
-
-function rupiah(v){
-  return Number(v).toLocaleString("id-ID");
-}
-
 function getTanggal(){
-  let d=new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  let d = new Date();
+  return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
 }
-
 function getBulan(){
-  let d=new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  let d = new Date();
+  return d.getFullYear()+"-"+(d.getMonth()+1);
 }
 
 // ==== STATE ====
@@ -62,17 +57,20 @@ let cart = [];
 let riwayat = [];
 
 // ==== FIREBASE REFERENCES ====
-const barangRef = collection(db,"barang");
-const riwayatRef = collection(db,"riwayat");
+const barangRef = collection(db, "barang");
+const riwayatRef = collection(db, "riwayat");
 
 // ==== REALTIME SYNC ====
 function initRealtime(){
-  onSnapshot(barangRef, snapshot=>{
-    barang = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+  // Barang realtime
+  onSnapshot(barangRef, (snapshot)=>{
+    barang = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderMenu();
   });
-  onSnapshot(riwayatRef, snapshot=>{
-    riwayat = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+
+  // Riwayat realtime
+  onSnapshot(riwayatRef, (snapshot)=>{
+    riwayat = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderRiwayat();
   });
 }
@@ -81,39 +79,42 @@ function initRealtime(){
 function renderMenu(){
   menuList.innerHTML="";
   const keyword = document.getElementById("search").value.toLowerCase();
-  barang.filter(b=>b.nama.toLowerCase().includes(keyword)).forEach(b=>{
-    const d=document.createElement("div");
-    d.className="card";
-    d.innerHTML=`
-      ${b.nama}<br>Rp${rupiah(b.harga)}<br>
-      <button class='btn-add' onclick="tambahKeCart('${b.id}')">Tambah</button>
-      <button class='btn-edit' onclick="editBarang('${b.id}')">Edit</button>
-      <button class='btn-delete' onclick="hapusBarang('${b.id}')">Hapus</button>
-    `;
-    menuList.appendChild(d);
-  });
+  barang
+    .filter(b => b.nama.toLowerCase().includes(keyword))
+    .forEach((b,i)=>{
+      const d = document.createElement("div");
+      d.className = "card";
+      d.innerHTML = `
+        ${b.nama}<br>Rp${b.harga.toLocaleString()}<br>
+        <button class='btn-add' onclick="tambahKeCart('${b.id}')">Tambah</button>
+        <button class='btn-edit' onclick="editBarang('${b.id}')">Edit</button>
+        <button class='btn-delete' onclick="hapusBarang('${b.id}')">Hapus</button>
+      `;
+      menuList.appendChild(d);
+    });
 }
 
+// ==== CRUD BARANG ====
 async function tambahBarang(){
   const n = nama.value;
   const h = parseRupiah(harga.value);
-  if(!n || !h) return;
+  if(!n||!h) return;
+
   await addDoc(barangRef, { nama: n, harga: h });
   nama.value=""; harga.value="";
 }
 
 async function editBarang(id){
   const b = barang.find(x=>x.id===id);
-  let h = prompt("Harga baru", rupiah(b.harga));
+  const h = prompt("Harga baru", b.harga);
   if(h){
-    h = parseRupiah(h);
-    const bDoc = doc(db,"barang",id);
-    await updateDoc(bDoc,{harga:h});
+    const bDoc = doc(db, "barang", id);
+    await updateDoc(bDoc, { harga: Number(h) });
   }
 }
 
 async function hapusBarang(id){
-  const bDoc = doc(db,"barang",id);
+  const bDoc = doc(db, "barang", id);
   await deleteDoc(bDoc);
 }
 
@@ -121,7 +122,8 @@ async function hapusBarang(id){
 function tambahKeCart(id){
   const b = barang.find(x=>x.id===id);
   const it = cart.find(x=>x.id===id);
-  if(it) it.qty++; else cart.push({id:b.id, nama:b.nama, harga:b.harga, qty:1});
+  if(it) it.qty++;
+  else cart.push({ id: b.id, nama: b.nama, harga: b.harga, qty: 1 });
   renderCart();
 }
 
@@ -131,10 +133,11 @@ function renderCart(){
   cart.forEach((c,i)=>{
     const sub = c.harga*c.qty;
     total += sub;
+
     const d = document.createElement("div");
     d.className="cart-item";
     d.innerHTML=`
-      <div>${c.nama}<br>Rp${rupiah(c.harga)}</div>
+      <div>${c.nama}<br>Rp${c.harga.toLocaleString()}</div>
       <div>
         <button onclick="kurangQty(${i})">-</button>
         ${c.qty}
@@ -144,7 +147,7 @@ function renderCart(){
     `;
     cartList.appendChild(d);
   });
-  totalDisplay.innerText = "Total: Rp" + rupiah(total);
+  totalDisplay.innerText = "Total: Rp" + total.toLocaleString();
 }
 
 function tambahQty(i){ cart[i].qty++; renderCart(); }
@@ -155,7 +158,7 @@ function hitungKembalian(){
   const bayar = parseRupiah(bayarInput.value);
   const total = cart.reduce((a,b)=>a+(b.harga*b.qty),0);
   const k = bayar-total;
-  kembalianDisplay.innerText = k>=0?"Kembalian: Rp"+rupiah(k):"Kurang";
+  kembalianDisplay.innerText = k>=0 ? "Kembalian: Rp"+k.toLocaleString() : "Kurang";
 }
 
 async function selesaiTransaksi(){
@@ -167,7 +170,7 @@ async function selesaiTransaksi(){
     bulan: getBulan(),
     total
   };
-  await addDoc(riwayatRef,data);
+  await addDoc(riwayatRef, data);
   cart=[]; bayarInput.value=""; kembalianDisplay.innerText="";
   renderCart();
 }
@@ -177,37 +180,44 @@ function renderRiwayat(){
   riwayatDiv.innerHTML="";
   const today = getTanggal();
   const thisMonth = getBulan();
-  let totalHari=0; let totalBulan=0;
 
-  riwayat.forEach(r=>{ if(r.bulan===thisMonth) totalBulan+=r.total; });
+  let totalHari=0;
+  let totalBulan=0;
 
-  const bulanDiv = document.createElement("div");
+  // total bulan
+  riwayat.forEach(r=>{
+    if(r.bulan===thisMonth) totalBulan+=r.total;
+  });
+
+  let bulanDiv = document.createElement("div");
   bulanDiv.className="card";
-  bulanDiv.innerHTML="Bulan ini: Rp"+rupiah(totalBulan);
+  bulanDiv.innerHTML="Bulan ini: Rp"+totalBulan.toLocaleString();
   riwayatDiv.appendChild(bulanDiv);
 
-  const riwayatSorted = [...riwayat].sort((a,b)=>new Date(a.tgl)-new Date(b.tgl));
-
-  const titleToday = document.createElement("h4"); titleToday.innerText="Hari Ini";
+  // hari ini
+  let titleToday = document.createElement("h4"); titleToday.innerText="Hari Ini";
   riwayatDiv.appendChild(titleToday);
-  riwayatSorted.filter(r=>r.tanggal===today).forEach(r=>{
-    totalHari += r.total;
+
+  riwayat.filter(r=>r.tanggal===today).reverse().forEach(r=>{
+    totalHari+=r.total;
     const d = document.createElement("div");
     d.className="card";
-    d.innerHTML = `${r.tgl}<br>Rp${rupiah(r.total)}`;
+    d.innerHTML = `${r.tgl}<br>Rp${r.total.toLocaleString()}`;
     riwayatDiv.appendChild(d);
   });
 
-  const titleOld = document.createElement("h4"); titleOld.innerText="Sebelumnya";
+  // sebelumnya
+  let titleOld = document.createElement("h4"); titleOld.innerText="Sebelumnya";
   riwayatDiv.appendChild(titleOld);
-  riwayatSorted.filter(r=>r.tanggal!==today).forEach(r=>{
+
+  riwayat.filter(r=>r.tanggal!==today).reverse().forEach(r=>{
     const d = document.createElement("div");
     d.className="card";
-    d.innerHTML = `${r.tgl}<br>Rp${rupiah(r.total)}`;
+    d.innerHTML = `${r.tgl}<br>Rp${r.total.toLocaleString()}`;
     riwayatDiv.appendChild(d);
   });
 
-  totalHarianDisplay.innerText = "Rp"+rupiah(totalHari);
+  totalHarianDisplay.innerText = "Rp"+totalHari.toLocaleString();
 }
 
 // ==== PRINT ====
@@ -216,20 +226,16 @@ function printStruk(){
   let total=0;
   cart.forEach(c=>{
     const sub = c.harga*c.qty;
-    total+=sub;
-    text += `${c.nama} x${c.qty} Rp${rupiah(sub)}\n`;
+    total += sub;
+    text += `${c.nama} x${c.qty} Rp${sub.toLocaleString()}\n`;
   });
-  text += "Total: Rp"+rupiah(total);
+  text += "Total: Rp"+total.toLocaleString();
   const w = window.open();
   w.document.write("<pre>"+text+"</pre>");
   w.print();
 }
 
-// ==== EVENT LISTENERS FOR INPUT FORMAT ====
-harga.addEventListener("input",()=>formatRupiahInput(harga));
-bayarInput.addEventListener("input",()=>formatRupiahInput(bayarInput));
-
-// ==== GLOBAL FUNCTIONS ====
+// ==== MAKE FUNCTIONS GLOBAL FOR HTML INLINE BUTTONS ====
 window.tambahBarang = tambahBarang;
 window.tambahKeCart = tambahKeCart;
 window.editBarang = editBarang;

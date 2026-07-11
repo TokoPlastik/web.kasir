@@ -11,6 +11,10 @@ const bayarInput = document.getElementById("bayar");
 
 let barang = []; let cart = []; let riwayat = [];
 
+// ==== VARIABEL GLOBAL UNTUK DISKON ====
+let totalAkhirGlobal = 0;
+let nominalDiskonGlobal = 0;
+
 // ==== AUTH LOGIC ====
 window.login = () => {
     const u = document.getElementById("username").value;
@@ -120,8 +124,20 @@ function renderCart() {
 
 window.hitungKembalian = () => {
     const t = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
+    const diskonPersen = Number(document.getElementById("diskon").value) || 0;
+    
+    nominalDiskonGlobal = (t * diskonPersen) / 100;
+    totalAkhirGlobal = t - nominalDiskonGlobal;
+
+    if (diskonPersen > 0) {
+        totalDisplay.innerHTML = `<span style="font-size:0.7em; text-decoration:line-through; color:#ef4444;">Rp${t.toLocaleString('id-ID')}</span> Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
+    } else {
+        totalDisplay.innerText = `Total: Rp${t.toLocaleString('id-ID')}`;
+    }
+
     const b = Number(bayarInput.value.replace(/\D/g, "")) || 0;
-    const sisa = b - t;
+    const sisa = b - totalAkhirGlobal;
+    
     kembalianDisplay.innerText = sisa >= 0 ? `Kembalian: Rp${sisa.toLocaleString('id-ID')}` : `Kurang: Rp${Math.abs(sisa).toLocaleString('id-ID')}`;
     kembalianDisplay.style.background = sisa >= 0 ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
     kembalianDisplay.style.color = sisa >= 0 ? "#10b981" : "#ef4444";
@@ -129,27 +145,154 @@ window.hitungKembalian = () => {
 
 // ==== TRANSAKSI ====
 window.selesaiTransaksi = async () => {
-    const t = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
+    if(cart.length === 0) return alert("Keranjang kosong!");
     const bayar = Number(bayarInput.value.replace(/\D/g, "")) || 0;
-    if(cart.length === 0 || bayar < t) return alert("Cek keranjang atau pembayaran!");
+    if(bayar < totalAkhirGlobal) return alert("Pembayaran kurang!");
     
     await addDoc(collection(db, "riwayat"), { 
-        total: t, 
+        total: totalAkhirGlobal, 
+        diskon: nominalDiskonGlobal,
         tanggal: new Date().toLocaleDateString('id-ID'),
         timestamp: Date.now() 
     });
-    cart = []; bayarInput.value = ""; renderCart();
+    
+    cart = []; 
+    bayarInput.value = ""; 
+    document.getElementById("diskon").value = "";
+    renderCart();
     alert("✅ Transaksi Berhasil!");
 };
 
+// ==== PRINT STRUK THERMAL PRO ====
 window.printStruk = () => {
     if(cart.length === 0) return alert("Keranjang kosong!");
-    let s = "TOKO PLASTIK PASAR LAMA\n----------------------\n";
-    cart.forEach(i => s += `${i.nama} x${i.qty} = ${i.harga * i.qty}\n`);
-    s += `----------------------\nTOTAL: ${totalDisplay.innerText}`;
+    
+    const tglSekarang = new Date();
+    const yyyy = tglSekarang.getFullYear();
+    const mm = String(tglSekarang.getMonth() + 1).padStart(2, '0');
+    const dd = String(tglSekarang.getDate()).padStart(2, '0');
+    const nomorStruk = `TRX-${yyyy}${mm}${dd}-${String(Date.now()).slice(-4)}`;
+    
+    const totalKotor = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
+    const diskonPersen = Number(document.getElementById("diskon").value) || 0;
+
+    let itemRows = "";
+    cart.forEach(i => {
+        const subtotal = i.harga * i.qty;
+        itemRows += `
+            <div class="item-block">
+                <div class="item-name">${i.nama}</div>
+                <div class="item-detail">
+                    <span>${i.qty} pcs x ${i.harga.toLocaleString('id-ID')}</span>
+                    <span>${subtotal.toLocaleString('id-ID')}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    const shortcutHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>Print Struk</title>
+            <style>
+                @page { size: 58mm auto; margin: 0; }
+                html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+                body { 
+                    font-family: 'Courier New', Courier, monospace; 
+                    width: 58mm; 
+                    padding: 4px 8px 30px 8px; 
+                    font-size: 12px; 
+                    line-height: 1.2;
+                    box-sizing: border-box;
+                }
+                .text-center { text-align: center; }
+                .bold { font-weight: bold; }
+                .line-equal { letter-spacing: -1px; margin: 3px 0; font-weight: bold; }
+                .line-dashed { border-top: 1px dashed #000; margin: 5px 0; }
+                
+                .meta-table { width: 100%; font-size: 11px; margin: 4px 0; border-collapse: collapse; }
+                .item-block { margin-bottom: 6px; page-break-inside: avoid; }
+                .item-name { font-size: 12px; }
+                .item-detail { display: flex; justify-content: space-between; font-size: 11px; padding-left: 8px; }
+                
+                .calc-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 4px; }
+                .calc-table td { padding: 1px 0; }
+                
+                .no-print { 
+                    background: #0ea5e9; color: white; border: none; padding: 10px; 
+                    width: 100%; border-radius: 6px; font-weight: bold; 
+                    margin-bottom: 10px; cursor: pointer; font-family: sans-serif; font-size: 14px;
+                }
+                @media print { .no-print { display: none !important; } body { width: 100%; } }
+            </style>
+        </head>
+        <body>
+            <button class="no-print" onclick="window.print()">⚙️ KIRIM KE PRINTER</button>
+            
+            <div class="text-center">
+                <strong style="font-size: 13px;">TOKO PLASTIK PASAR LAMA</strong><br>
+                <span style="font-size: 10px;">Jln. Pasar Lama, Area Pasar Tradisional</span><br>
+                <span style="font-size: 10px;">Telp: 085XXXXXXXXX</span>
+            </div>
+            
+            <div class="line-equal">==============================</div>
+            
+            <table class="meta-table">
+                <tr>
+                    <td>No: <span class="bold">${nomorStruk}</span></td>
+                    <td style="text-align: right;">Kasir: <span class="bold">Admin</span></td>
+                </tr>
+                <tr>
+                    <td>Tgl: ${dd}/${mm}/${yyyy} ${String(tglSekarang.getHours()).padStart(2, '0')}:${String(tglSekarang.getMinutes()).padStart(2, '0')}</td>
+                    <td style="text-align: right;">Jenis: <span class="bold">Tunai</span></td>
+                </tr>
+            </table>
+            
+            <div class="line-dashed"></div>
+            
+            <div class="items-container">${itemRows}</div>
+            
+            <div class="line-dashed"></div>
+            
+            <table class="calc-table">
+                ${diskonPersen > 0 ? `
+                <tr>
+                    <td>Subtotal:</td>
+                    <td style="text-align: right;">${totalKotor.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr>
+                    <td>Diskon (${diskonPersen}%):</td>
+                    <td style="text-align: right;">-${nominalDiskonGlobal.toLocaleString('id-ID')}</td>
+                </tr>
+                ` : ''}
+                <tr class="bold" style="font-size: 13px;">
+                    <td>TOTAL AKHIR:</td>
+                    <td style="text-align: right;">${totalAkhirGlobal.toLocaleString('id-ID')}</td>
+                </tr>
+            </table>
+            
+            <div class="line-dashed"></div>
+            
+            <div class="text-center" style="margin-top: 10px; font-size: 10px; letter-spacing: 0.5px;">
+                Terima Kasih<br>
+                Selamat Belanja Kembali
+            </div>
+
+            <script>
+                window.onload = () => {
+                    setTimeout(() => { window.print(); }, 400);
+                };
+            <\/script>
+        </body>
+        </html>
+    `;
+
     const w = window.open('', '_blank');
-    w.document.write(`<pre style="font-family: monospace;">${s}</pre>`);
-    w.print(); w.close();
+    w.document.write(shortcutHtml);
+    w.document.close();
 };
 
 // ==== CRUD BARANG ====

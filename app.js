@@ -11,9 +11,11 @@ const bayarInput = document.getElementById("bayar");
 
 let barang = []; let cart = []; let riwayat = [];
 
-// ==== VARIABEL GLOBAL UNTUK DISKON ====
+// ==== VARIABEL GLOBAL PERHITUNGAN ====
 let totalAkhirGlobal = 0;
 let nominalDiskonGlobal = 0;
+let uangBayarGlobal = 0;
+let uangKembalianGlobal = 0;
 
 // ==== AUTH LOGIC ====
 window.login = () => {
@@ -47,24 +49,29 @@ function initRealtime() {
     });
 }
 
-// ==== RENDER MENU & SEARCH ====
+// ==== RENDER MENU BERURUTAN A - Z & SEARCH ====
 searchInput.oninput = () => renderMenu();
 function renderMenu() {
     const key = searchInput.value.toLowerCase();
     menuList.innerHTML = "";
-    barang.filter(b => b.nama.toLowerCase().includes(key)).forEach(b => {
+    
+    const barangTerurut = barang
+        .filter(b => b.nama.toLowerCase().includes(key))
+        .sort((a, b) => a.nama.localeCompare(b.nama));
+
+    barangTerurut.forEach(b => {
         const d = document.createElement("div");
-        d.className = "card";
+        d.className = "card card-menu";
         d.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <strong style="font-size: 1.1em;">${b.nama}</strong><br>
-                    <span style="color:#10b981; font-weight: 600;">Rp${Number(b.harga).toLocaleString('id-ID')}</span>
+                    <strong style="font-size: 1.05em; color: #f8fafc; display: block; margin-bottom: 4px;">${b.nama}</strong>
+                    <span style="color:#10b981; font-weight: 700; font-size: 1em;">Rp${Number(b.harga).toLocaleString('id-ID')}</span>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 6px;">
                     <button class="btn-add" onclick="tambahKeCart('${b.id}')">🛒 Tambah</button>
-                    <button onclick="editBarang('${b.id}')" style="background:#3b82f6; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer;">✏️</button>
-                    <button class="btn-delete" onclick="hapusBarang('${b.id}')">🗑️</button>
+                    <button class="btn-action-small" onclick="editBarang('${b.id}')">✏️</button>
+                    <button class="btn-action-small" onclick="hapusBarang('${b.id}')" style="color: #ef4444;">🗑️</button>
                 </div>
             </div>
         `;
@@ -104,46 +111,74 @@ window.updateQty = (i, delta) => {
 function renderCart() {
     cartList.innerHTML = "";
     let t = 0;
+    
     cart.forEach((c, i) => {
-        t += c.harga * c.qty;
+        let hargaEfektif = c.harga;
+        if (c.nama.toLowerCase().includes("kresek") && c.qty >= 5) {
+            hargaEfektif = 5500;
+        }
+
+        const subtotalItem = hargaEfektif * c.qty;
+        t += subtotalItem;
+
         const d = document.createElement("div");
         d.className = "cart-item";
         d.innerHTML = `
-            <span>${c.nama}</span>
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="max-width: 60%;">
+                <span style="font-weight: 600; color: #f1f5f9; display:block; font-size:0.95em;">${c.nama}</span>
+                <small style="color: #94a3b8; font-size: 0.8em; display:inline-flex; align-items:center; gap:6px; margin-top:2px;">
+                    ${c.qty} x Rp${hargaEfektif.toLocaleString('id-ID')} 
+                    ${hargaEfektif < c.harga ? '<span class="badge-grosir">Grosir</span>' : ''}
+                </small>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
-                <span>${c.qty}</span>
+                <span style="font-weight: 700; min-width: 20px; text-align: center; color: #fff;">${c.qty}</span>
                 <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
             </div>
         `;
         cartList.appendChild(d);
     });
-    totalDisplay.innerText = `Total: Rp${t.toLocaleString('id-ID')}`;
+    
+    window.totalKotorCart = t; 
     window.hitungKembalian();
 }
 
 window.hitungKembalian = () => {
-    const t = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
-    const diskonPersen = Number(document.getElementById("diskon").value) || 0;
+    const t = window.totalKotorCart || 0;
+    const potonganRupiah = Number(document.getElementById("diskon").value.replace(/\D/g, "")) || 0;
     
-    nominalDiskonGlobal = (t * diskonPersen) / 100;
+    nominalDiskonGlobal = potonganRupiah;
     totalAkhirGlobal = t - nominalDiskonGlobal;
+    if(totalAkhirGlobal < 0) totalAkhirGlobal = 0;
 
-    if (diskonPersen > 0) {
-        totalDisplay.innerHTML = `<span style="font-size:0.7em; text-decoration:line-through; color:#ef4444;">Rp${t.toLocaleString('id-ID')}</span> Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
+    if (nominalDiskonGlobal > 0) {
+        totalDisplay.innerHTML = `<span style="font-size:0.65em; text-decoration:line-through; color:#ef4444; margin-right:8px; font-weight:400;">Rp${t.toLocaleString('id-ID')}</span>Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
     } else {
         totalDisplay.innerText = `Total: Rp${t.toLocaleString('id-ID')}`;
     }
 
     const b = Number(bayarInput.value.replace(/\D/g, "")) || 0;
+    uangBayarGlobal = b;
     const sisa = b - totalAkhirGlobal;
+    uangKembalianGlobal = sisa >= 0 ? sisa : 0;
     
-    kembalianDisplay.innerText = sisa >= 0 ? `Kembalian: Rp${sisa.toLocaleString('id-ID')}` : `Kurang: Rp${Math.abs(sisa).toLocaleString('id-ID')}`;
-    kembalianDisplay.style.background = sisa >= 0 ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
-    kembalianDisplay.style.color = sisa >= 0 ? "#10b981" : "#ef4444";
+    if(bayarInput.value === "") {
+        kembalianDisplay.innerText = "Kembalian: Rp0";
+        kembalianDisplay.style.background = "rgba(255,255,255,0.02)";
+        kembalianDisplay.style.color = "#64748b";
+    } else if(sisa >= 0) {
+        kembalianDisplay.innerText = `Kembalian: Rp${sisa.toLocaleString('id-ID')}`;
+        kembalianDisplay.style.background = "rgba(16, 185, 129, 0.12)";
+        kembalianDisplay.style.color = "#10b981";
+    } else {
+        kembalianDisplay.innerText = `Kurang: Rp${Math.abs(sisa).toLocaleString('id-ID')}`;
+        kembalianDisplay.style.background = "rgba(239, 68, 68, 0.12)";
+        kembalianDisplay.style.color = "#ef4444";
+    }
 };
 
-// ==== TRANSAKSI ====
+// ==== TRANSAKSI SELESAI ====
 window.selesaiTransaksi = async () => {
     if(cart.length === 0) return alert("Keranjang kosong!");
     const bayar = Number(bayarInput.value.replace(/\D/g, "")) || 0;
@@ -163,7 +198,7 @@ window.selesaiTransaksi = async () => {
     alert("✅ Transaksi Berhasil!");
 };
 
-// ==== PRINT STRUK THERMAL PRO ====
+// ==== PRINT STRUK CASIR THERMAL WITH TUNAI & KEMBALIAN (ANDRIOD FRIENDLY) ====
 window.printStruk = () => {
     if(cart.length === 0) return alert("Keranjang kosong!");
     
@@ -173,17 +208,23 @@ window.printStruk = () => {
     const dd = String(tglSekarang.getDate()).padStart(2, '0');
     const nomorStruk = `TRX-${yyyy}${mm}${dd}-${String(Date.now()).slice(-4)}`;
     
-    const totalKotor = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
-    const diskonPersen = Number(document.getElementById("diskon").value) || 0;
-
+    let totalKotorStruk = 0;
     let itemRows = "";
+    
     cart.forEach(i => {
-        const subtotal = i.harga * i.qty;
+        let hargaEfektif = i.harga;
+        if (i.nama.toLowerCase().includes("kresek") && i.qty >= 5) {
+            hargaEfektif = 5500;
+        }
+        
+        const subtotal = hargaEfektif * i.qty;
+        totalKotorStruk += subtotal;
+
         itemRows += `
             <div class="item-block">
-                <div class="item-name">${i.nama}</div>
+                <div class="item-name">${i.nama} ${hargaEfektif < i.harga ? '(Grosir)' : ''}</div>
                 <div class="item-detail">
-                    <span>${i.qty} pcs x ${i.harga.toLocaleString('id-ID')}</span>
+                    <span>${i.qty} pcs x ${hargaEfektif.toLocaleString('id-ID')}</span>
                     <span>${subtotal.toLocaleString('id-ID')}</span>
                 </div>
             </div>
@@ -218,13 +259,13 @@ window.printStruk = () => {
                 .item-name { font-size: 12px; }
                 .item-detail { display: flex; justify-content: space-between; font-size: 11px; padding-left: 8px; }
                 
-                .calc-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 4px; }
-                .calc-table td { padding: 1px 0; }
+                .calc-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 4px; }
+                .calc-table td { padding: 2px 0; }
                 
                 .no-print { 
-                    background: #0ea5e9; color: white; border: none; padding: 10px; 
+                    background: #0ea5e9; color: white; border: none; padding: 12px; 
                     width: 100%; border-radius: 6px; font-weight: bold; 
-                    margin-bottom: 10px; cursor: pointer; font-family: sans-serif; font-size: 14px;
+                    margin-bottom: 12px; cursor: pointer; font-family: sans-serif; font-size: 14px;
                 }
                 @media print { .no-print { display: none !important; } body { width: 100%; } }
             </style>
@@ -233,9 +274,9 @@ window.printStruk = () => {
             <button class="no-print" onclick="window.print()">⚙️ KIRIM KE PRINTER</button>
             
             <div class="text-center">
-                <strong style="font-size: 13px;">TOKO PLASTIK PASAR LAMA</strong><br>
-                <span style="font-size: 10px;">Jln. Pasar Lama, Area Pasar Tradisional</span><br>
-                <span style="font-size: 10px;">Telp: 085XXXXXXXXX</span>
+                <strong style="font-size: 13px;">TOKO BERKAH</strong><br>
+                <span style="font-size: 10px;">Jln. Pasar Lama no 64, Alun-Alun Tanjungsari, Sumedang</span><br>
+                <span style="font-size: 10px;">Telp: 085222326637</span>
             </div>
             
             <div class="line-equal">==============================</div>
@@ -258,19 +299,27 @@ window.printStruk = () => {
             <div class="line-dashed"></div>
             
             <table class="calc-table">
-                ${diskonPersen > 0 ? `
+                ${nominalDiskonGlobal > 0 ? `
                 <tr>
                     <td>Subtotal:</td>
-                    <td style="text-align: right;">${totalKotor.toLocaleString('id-ID')}</td>
+                    <td style="text-align: right;">${totalKotorStruk.toLocaleString('id-ID')}</td>
                 </tr>
                 <tr>
-                    <td>Diskon (${diskonPersen}%):</td>
+                    <td>Potongan Harga:</td>
                     <td style="text-align: right;">-${nominalDiskonGlobal.toLocaleString('id-ID')}</td>
                 </tr>
                 ` : ''}
-                <tr class="bold" style="font-size: 13px;">
+                <tr class="bold" style="font-size: 12px;">
                     <td>TOTAL AKHIR:</td>
                     <td style="text-align: right;">${totalAkhirGlobal.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr>
+                    <td>TUNAI/BAYAR:</td>
+                    <td style="text-align: right;">${uangBayarGlobal.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr class="bold">
+                    <td>KEMBALIAN:</td>
+                    <td style="text-align: right;">${uangKembalianGlobal.toLocaleString('id-ID')}</td>
                 </tr>
             </table>
             
@@ -285,7 +334,7 @@ window.printStruk = () => {
                 window.onload = () => {
                     setTimeout(() => { window.print(); }, 400);
                 };
-            <\/script>
+            </script>
         </body>
         </html>
     `;
@@ -314,9 +363,19 @@ window.clearRiwayat = async () => {
     }
 };
 
-// ==== NAV & UTILS ====
-window.showMenuPage = () => { document.getElementById("menuPage").style.display="block"; document.getElementById("riwayatPage").style.display="none"; };
-window.showRiwayatPage = () => { document.getElementById("menuPage").style.display="none"; document.getElementById("riwayatPage").style.display="block"; };
+// ==== NAV & UTILS WITH ACTIVE STATE STYLING ====
+window.showMenuPage = () => { 
+    document.getElementById("menuPage").style.display="block"; 
+    document.getElementById("riwayatPage").style.display="none"; 
+    document.getElementById("btnNavPenjualan").classList.add("active");
+    document.getElementById("btnNavRiwayat").classList.remove("active");
+};
+window.showRiwayatPage = () => { 
+    document.getElementById("menuPage").style.display="none"; 
+    document.getElementById("riwayatPage").style.display="block"; 
+    document.getElementById("btnNavPenjualan").classList.remove("active");
+    document.getElementById("btnNavRiwayat").classList.add("active");
+};
 window.formatRupiah = (el) => {
     let v = el.value.replace(/\D/g, "");
     el.value = v ? Number(v).toLocaleString('id-ID') : "";
@@ -325,7 +384,7 @@ function renderRiwayat() {
     const rDiv = document.getElementById("riwayat");
     rDiv.innerHTML = "";
     riwayat.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
-        rDiv.innerHTML += `<div class="card">📅 ${r.tanggal} - <span style="color:#10b981">Rp${r.total.toLocaleString('id-ID')}</span></div>`;
+        rDiv.innerHTML += `<div class="card" style="margin-bottom:8px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;"><span>📅 ${r.tanggal}</span> <strong style="color:#10b981">Rp${r.total.toLocaleString('id-ID')}</strong></div>`;
     });
 }
 function updateTotalHarian() {

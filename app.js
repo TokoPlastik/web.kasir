@@ -8,10 +8,12 @@ const totalHarianDisplay = document.getElementById("totalHarian");
 const kembalianDisplay = document.getElementById("kembalian");
 const searchInput = document.getElementById("search");
 const bayarInput = document.getElementById("bayar");
+const diskonInput = document.getElementById("diskon");
 
 let barang = []; let cart = []; let riwayat = [];
 
-// ==== VARIABEL GLOBAL PERHITUNGAN ====
+// ==== VARIABEL GLOBAL PERHITUNGAN LENGKAP ====
+let totalKotorGlobal = 0;
 let totalAkhirGlobal = 0;
 let nominalDiskonGlobal = 0;
 let uangBayarGlobal = 0;
@@ -55,23 +57,24 @@ function renderMenu() {
     const key = searchInput.value.toLowerCase();
     menuList.innerHTML = "";
     
+    // Urutan Alfabet Otomatis A - Z
     const barangTerurut = barang
         .filter(b => b.nama.toLowerCase().includes(key))
         .sort((a, b) => a.nama.localeCompare(b.nama));
 
     barangTerurut.forEach(b => {
         const d = document.createElement("div");
-        d.className = "card card-menu";
+        d.className = "card";
         d.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <strong style="font-size: 1.05em; color: #f8fafc; display: block; margin-bottom: 4px;">${b.nama}</strong>
-                    <span style="color:#10b981; font-weight: 700; font-size: 1em;">Rp${Number(b.harga).toLocaleString('id-ID')}</span>
+                    <strong style="font-size: 1.1em;">${b.nama}</strong><br>
+                    <span style="color:#10b981; font-weight: 600;">Rp${Number(b.harga).toLocaleString('id-ID')}</span>
                 </div>
-                <div style="display: flex; gap: 6px;">
+                <div style="display: flex; gap: 8px;">
                     <button class="btn-add" onclick="tambahKeCart('${b.id}')">🛒 Tambah</button>
-                    <button class="btn-action-small" onclick="editBarang('${b.id}')">✏️</button>
-                    <button class="btn-action-small" onclick="hapusBarang('${b.id}')" style="color: #ef4444;">🗑️</button>
+                    <button onclick="editBarang('${b.id}')" style="background:#3b82f6; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer;">✏️</button>
+                    <button class="btn-delete" onclick="hapusBarang('${b.id}')">🗑️</button>
                 </div>
             </div>
         `;
@@ -113,6 +116,7 @@ function renderCart() {
     let t = 0;
     
     cart.forEach((c, i) => {
+        // AMBIL FITUR ASLI: Aturan Grosir Khusus Kresek >= 5 Pcs Otomatis Rp5.500
         let hargaEfektif = c.harga;
         if (c.nama.toLowerCase().includes("kresek") && c.qty >= 5) {
             hargaEfektif = 5500;
@@ -125,37 +129,37 @@ function renderCart() {
         d.className = "cart-item";
         d.innerHTML = `
             <div style="max-width: 60%;">
-                <span style="font-weight: 600; color: #f1f5f9; display:block; font-size:0.95em;">${c.nama}</span>
-                <small style="color: #94a3b8; font-size: 0.8em; display:inline-flex; align-items:center; gap:6px; margin-top:2px;">
-                    ${c.qty} x Rp${hargaEfektif.toLocaleString('id-ID')} 
+                <span style="font-weight:600; display:block;">${c.nama}</span>
+                <small style="color: #94a3b8;">
+                    ${c.qty} x Rp${hargaEfektif.toLocaleString('id-ID')}
                     ${hargaEfektif < c.harga ? '<span class="badge-grosir">Grosir</span>' : ''}
                 </small>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="qty-btn" onclick="updateQty(${i}, -1)">-</button>
-                <span style="font-weight: 700; min-width: 20px; text-align: center; color: #fff;">${c.qty}</span>
+                <span style="font-weight: 600; min-width: 15px; text-align: center;">${c.qty}</span>
                 <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
             </div>
         `;
         cartList.appendChild(d);
     });
     
-    window.totalKotorCart = t; 
+    totalKotorGlobal = t;
     window.hitungKembalian();
 }
 
 window.hitungKembalian = () => {
-    const t = window.totalKotorCart || 0;
-    const potonganRupiah = Number(document.getElementById("diskon").value.replace(/\D/g, "")) || 0;
-    
+    const potonganRupiah = Number(diskonInput.value.replace(/\D/g, "")) || 0;
     nominalDiskonGlobal = potonganRupiah;
-    totalAkhirGlobal = t - nominalDiskonGlobal;
-    if(totalAkhirGlobal < 0) totalAkhirGlobal = 0;
+    
+    totalAkhirGlobal = totalKotorGlobal - nominalDiskonGlobal;
+    if (totalAkhirGlobal < 0) totalAkhirGlobal = 0;
 
+    // Tampilkan Coretan Total Kotor Jika Ada Diskon
     if (nominalDiskonGlobal > 0) {
-        totalDisplay.innerHTML = `<span style="font-size:0.65em; text-decoration:line-through; color:#ef4444; margin-right:8px; font-weight:400;">Rp${t.toLocaleString('id-ID')}</span>Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
+        totalDisplay.innerHTML = `<span style="font-size:0.7em; text-decoration:line-through; color:#ef4444; margin-right:10px; font-weight:400;">Rp${totalKotorGlobal.toLocaleString('id-ID')}</span>Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
     } else {
-        totalDisplay.innerText = `Total: Rp${t.toLocaleString('id-ID')}`;
+        totalDisplay.innerText = `Total: Rp${totalAkhirGlobal.toLocaleString('id-ID')}`;
     }
 
     const b = Number(bayarInput.value.replace(/\D/g, "")) || 0;
@@ -169,20 +173,19 @@ window.hitungKembalian = () => {
         kembalianDisplay.style.color = "#64748b";
     } else if(sisa >= 0) {
         kembalianDisplay.innerText = `Kembalian: Rp${sisa.toLocaleString('id-ID')}`;
-        kembalianDisplay.style.background = "rgba(16, 185, 129, 0.12)";
+        kembalianDisplay.style.background = "rgba(16, 185, 129, 0.2)";
         kembalianDisplay.style.color = "#10b981";
     } else {
         kembalianDisplay.innerText = `Kurang: Rp${Math.abs(sisa).toLocaleString('id-ID')}`;
-        kembalianDisplay.style.background = "rgba(239, 68, 68, 0.12)";
+        kembalianDisplay.style.background = "rgba(239, 68, 68, 0.2)";
         kembalianDisplay.style.color = "#ef4444";
     }
 };
 
-// ==== TRANSAKSI SELESAI ====
+// ==== TRANSAKSI ====
 window.selesaiTransaksi = async () => {
     if(cart.length === 0) return alert("Keranjang kosong!");
-    const bayar = Number(bayarInput.value.replace(/\D/g, "")) || 0;
-    if(bayar < totalAkhirGlobal) return alert("Pembayaran kurang!");
+    if(uangBayarGlobal < totalAkhirGlobal) return alert("Nominal pembayaran kurang!");
     
     await addDoc(collection(db, "riwayat"), { 
         total: totalAkhirGlobal, 
@@ -193,37 +196,32 @@ window.selesaiTransaksi = async () => {
     
     cart = []; 
     bayarInput.value = ""; 
-    document.getElementById("diskon").value = "";
+    diskonInput.value = "";
     renderCart();
     alert("✅ Transaksi Berhasil!");
 };
 
-// ==== PRINT STRUK CASIR THERMAL WITH TUNAI & KEMBALIAN (ANDRIOD FRIENDLY) ====
+// ==== PRINT STRUK PREMIUM (SESUAI CONTOH KASIR ASLI) ====
 window.printStruk = () => {
     if(cart.length === 0) return alert("Keranjang kosong!");
     
-    const tglSekarang = new Date();
-    const yyyy = tglSekarang.getFullYear();
-    const mm = String(tglSekarang.getMonth() + 1).padStart(2, '0');
-    const dd = String(tglSekarang.getDate()).padStart(2, '0');
-    const nomorStruk = `TRX-${yyyy}${mm}${dd}-${String(Date.now()).slice(-4)}`;
+    const tgl = new Date();
+    const tglString = `${String(tgl.getDate()).padStart(2, '0')}-${String(tgl.getMonth() + 1).padStart(2, '0')}-${tgl.getFullYear()}`;
+    const jamString = `${String(tgl.getHours()).padStart(2, '0')}:${String(tgl.getMinutes()).padStart(2, '0')}`;
+    const noStruk = `TRX-${tgl.getFullYear()}${String(tgl.getMonth()+1).padStart(2, '0')}${String(tgl.getDate()).padStart(2, '0')}-${String(Date.now()).slice(-4)}`;
     
-    let totalKotorStruk = 0;
     let itemRows = "";
-    
     cart.forEach(i => {
         let hargaEfektif = i.harga;
         if (i.nama.toLowerCase().includes("kresek") && i.qty >= 5) {
             hargaEfektif = 5500;
         }
-        
         const subtotal = hargaEfektif * i.qty;
-        totalKotorStruk += subtotal;
 
         itemRows += `
-            <div class="item-block">
-                <div class="item-name">${i.nama} ${hargaEfektif < i.harga ? '(Grosir)' : ''}</div>
-                <div class="item-detail">
+            <div style="margin-bottom: 5px;">
+                <div>${i.nama} ${hargaEfektif < i.harga ? '(Grosir)' : ''}</div>
+                <div style="display: flex; justify-content: space-between; padding-left: 10px; font-size: 11px;">
                     <span>${i.qty} pcs x ${hargaEfektif.toLocaleString('id-ID')}</span>
                     <span>${subtotal.toLocaleString('id-ID')}</span>
                 </div>
@@ -231,116 +229,75 @@ window.printStruk = () => {
         `;
     });
 
-    const shortcutHtml = `
+    const strukHtml = `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>Print Struk</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cetak Struk</title>
             <style>
                 @page { size: 58mm auto; margin: 0; }
-                html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    width: 58mm; 
-                    padding: 4px 8px 30px 8px; 
-                    font-size: 12px; 
-                    line-height: 1.2;
-                    box-sizing: border-box;
-                }
+                body { font-family: 'Courier New', Courier, monospace; width: 58mm; padding: 5px 8px; font-size: 12px; color: #000; background: #fff; margin: 0; box-sizing: border-box; }
                 .text-center { text-align: center; }
-                .bold { font-weight: bold; }
-                .line-equal { letter-spacing: -1px; margin: 3px 0; font-weight: bold; }
-                .line-dashed { border-top: 1px dashed #000; margin: 5px 0; }
-                
-                .meta-table { width: 100%; font-size: 11px; margin: 4px 0; border-collapse: collapse; }
-                .item-block { margin-bottom: 6px; page-break-inside: avoid; }
-                .item-name { font-size: 12px; }
-                .item-detail { display: flex; justify-content: space-between; font-size: 11px; padding-left: 8px; }
-                
-                .calc-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 4px; }
-                .calc-table td { padding: 2px 0; }
-                
-                .no-print { 
-                    background: #0ea5e9; color: white; border: none; padding: 12px; 
-                    width: 100%; border-radius: 6px; font-weight: bold; 
-                    margin-bottom: 12px; cursor: pointer; font-family: sans-serif; font-size: 14px;
-                }
-                @media print { .no-print { display: none !important; } body { width: 100%; } }
+                .divider { border-top: 1px dashed #000; margin: 6px 0; }
+                .flex-space { display: flex; justify-content: space-between; }
+                .btn-print { display: block; width: 100%; background: #0ea5e9; color: white; border: none; padding: 10px; font-weight: bold; margin-bottom: 10px; border-radius: 5px; cursor: pointer; font-family: sans-serif; }
+                @media print { .btn-print { display: none; } }
             </style>
         </head>
         <body>
-            <button class="no-print" onclick="window.print()">⚙️ KIRIM KE PRINTER</button>
-            
+            <button class="btn-print" onclick="window.print()">KIRIM KE PRINTER THERMAL</button>
             <div class="text-center">
-                <strong style="font-size: 13px;">TOKO BERKAH</strong><br>
-                <span style="font-size: 10px;">Jln. Pasar Lama no 64, Alun-Alun Tanjungsari, Sumedang</span><br>
+                <strong style="font-size: 14px;">TOKO BERKAH</strong><br>
+                <span style="font-size: 10px;">Jln.pasar lama no 64, Alun-Alun Tanjungsari, Sumedang</span><br>
                 <span style="font-size: 10px;">Telp: 085222326637</span>
             </div>
-            
-            <div class="line-equal">==============================</div>
-            
-            <table class="meta-table">
-                <tr>
-                    <td>No: <span class="bold">${nomorStruk}</span></td>
-                    <td style="text-align: right;">Kasir: <span class="bold">Admin</span></td>
-                </tr>
-                <tr>
-                    <td>Tgl: ${dd}/${mm}/${yyyy} ${String(tglSekarang.getHours()).padStart(2, '0')}:${String(tglSekarang.getMinutes()).padStart(2, '0')}</td>
-                    <td style="text-align: right;">Jenis: <span class="bold">Tunai</span></td>
-                </tr>
-            </table>
-            
-            <div class="line-dashed"></div>
-            
-            <div class="items-container">${itemRows}</div>
-            
-            <div class="line-dashed"></div>
-            
-            <table class="calc-table">
-                ${nominalDiskonGlobal > 0 ? `
-                <tr>
-                    <td>Subtotal:</td>
-                    <td style="text-align: right;">${totalKotorStruk.toLocaleString('id-ID')}</td>
-                </tr>
-                <tr>
-                    <td>Potongan Harga:</td>
-                    <td style="text-align: right;">-${nominalDiskonGlobal.toLocaleString('id-ID')}</td>
-                </tr>
-                ` : ''}
-                <tr class="bold" style="font-size: 12px;">
-                    <td>TOTAL AKHIR:</td>
-                    <td style="text-align: right;">${totalAkhirGlobal.toLocaleString('id-ID')}</td>
-                </tr>
-                <tr>
-                    <td>TUNAI/BAYAR:</td>
-                    <td style="text-align: right;">${uangBayarGlobal.toLocaleString('id-ID')}</td>
-                </tr>
-                <tr class="bold">
-                    <td>KEMBALIAN:</td>
-                    <td style="text-align: right;">${uangKembalianGlobal.toLocaleString('id-ID')}</td>
-                </tr>
-            </table>
-            
-            <div class="line-dashed"></div>
-            
-            <div class="text-center" style="margin-top: 10px; font-size: 10px; letter-spacing: 0.5px;">
-                Terima Kasih<br>
-                Selamat Belanja Kembali
+            <div class="divider"></div>
+            <div style="font-size: 11px;">
+                <div class="flex-space"><span>No. Struk: ${noStruk}</span><span>Kasir: Admin</span></div>
+                <div class="flex-space"><span>Tgl: ${tglString} ${jamString}</span><span>Jenis: Tunai</span></div>
             </div>
+            <div class="divider"></div>
+            <div>${itemRows}</div>
+            <div class="divider"></div>
+            
+            ${nominalDiskonGlobal > 0 ? `
+            <div class="flex-space">
+                <span>Subtotal:</span>
+                <span>${totalKotorGlobal.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="flex-space">
+                <span>Potongan Harga:</span>
+                <span>-${nominalDiskonGlobal.toLocaleString('id-ID')}</span>
+            </div>
+            ` : ''}
 
+            <div class="flex-space" style="font-weight: bold;">
+                <span>TOTAL AKHIR:</span>
+                <span>${totalAkhirGlobal.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="flex-space">
+                <span>TUNAI/BAYAR:</span>
+                <span>${uangBayarGlobal.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="flex-space" style="font-weight: bold;">
+                <span>KEMBALIAN:</span>
+                <span>${uangKembalianGlobal.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="divider"></div>
+            <div class="text-center" style="margin-top: 8px; font-size: 11px;">
+                Terima Kasih<br>Selamat Belanja Kembali
+            </div>
             <script>
-                window.onload = () => {
-                    setTimeout(() => { window.print(); }, 400);
-                };
+                window.onload = () => { setTimeout(() => { window.print(); }, 300); };
             </script>
         </body>
         </html>
     `;
 
     const w = window.open('', '_blank');
-    w.document.write(shortcutHtml);
+    w.document.write(strukHtml);
     w.document.close();
 };
 
@@ -363,19 +320,9 @@ window.clearRiwayat = async () => {
     }
 };
 
-// ==== NAV & UTILS WITH ACTIVE STATE STYLING ====
-window.showMenuPage = () => { 
-    document.getElementById("menuPage").style.display="block"; 
-    document.getElementById("riwayatPage").style.display="none"; 
-    document.getElementById("btnNavPenjualan").classList.add("active");
-    document.getElementById("btnNavRiwayat").classList.remove("active");
-};
-window.showRiwayatPage = () => { 
-    document.getElementById("menuPage").style.display="none"; 
-    document.getElementById("riwayatPage").style.display="block"; 
-    document.getElementById("btnNavPenjualan").classList.remove("active");
-    document.getElementById("btnNavRiwayat").classList.add("active");
-};
+// ==== NAV & UTILS ====
+window.showMenuPage = () => { document.getElementById("menuPage").style.display="block"; document.getElementById("riwayatPage").style.display="none"; };
+window.showRiwayatPage = () => { document.getElementById("menuPage").style.display="none"; document.getElementById("riwayatPage").style.display="block"; };
 window.formatRupiah = (el) => {
     let v = el.value.replace(/\D/g, "");
     el.value = v ? Number(v).toLocaleString('id-ID') : "";
@@ -384,7 +331,7 @@ function renderRiwayat() {
     const rDiv = document.getElementById("riwayat");
     rDiv.innerHTML = "";
     riwayat.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
-        rDiv.innerHTML += `<div class="card" style="margin-bottom:8px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;"><span>📅 ${r.tanggal}</span> <strong style="color:#10b981">Rp${r.total.toLocaleString('id-ID')}</strong></div>`;
+        rDiv.innerHTML += `<div class="card">📅 ${r.tanggal} - <span style="color:#10b981">Rp${r.total.toLocaleString('id-ID')}</span></div>`;
     });
 }
 function updateTotalHarian() {
